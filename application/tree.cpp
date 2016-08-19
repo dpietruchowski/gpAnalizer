@@ -1,102 +1,253 @@
 #include "tree.h"
 
 using namespace std;
+using namespace cv;
 
-tree::tree(int depth, string id)
-{
-    counterNodes = 0;
-    this->depth = depth;
-    this->id = id;
-}
-
-tree::tree(int depth)
-{
-    counterNodes = 0;
-    this->depth = depth;
-    this->id = "pxty";
-}
-
-tree::~tree()
+Tree::Tree(int depth, int id):
+    id_(id), depth_(depth), counterNodes_(0), nClones(new int(0))
 {
 }
 
-void tree::initializeRoot(const functionSet &functions, const terminalSet &terminals)
+void Tree::initialize(InitType type, NodeGenerator &generator)
 {
-    if (this->depth <= 1)
+    if (counterNodes_ > 1)
     {
-        string id = this->id + 'n' + to_string(counterNodes++);
-        this->root = node_ptr( new termNode(terminals.getRandomImage(), id) );
-    } else
-    {
-        this->root = move( getRandomNode(functions) );
+       string exception = "Drzewo zostalo juz zainicjowane";
+       throw exception;
     }
-}
 
-void tree::setId(string id)
-{
-    this->id = id;
-    this->counterNodes = 0;
-    node* root = this->root.get();
+    initializeRoot(generator);
 
-    id = this->id + 'n' + to_string(counterNodes++);
-    root->setId(id);
-    setSubtreeId(root);
-}
-
-void tree::setSubtreeId(node *subroot)
-{
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
+    if (type == GROW_INIT)
     {
-        string id = this->id + 'n' + to_string(counterNodes++);
-        subroot->getChild(i)->setId(id);
-    }
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
+       initializeGrow(generator, root_.get(), depth_-1);
+       depth_ = 1;
+       checkDepth(root_.get(), depth_);
+           //Change depth, After grow init can be different
+    } else if (type == FULL_INIT)
+        initializeFull(generator, root_.get(), depth_-1);
+}
+
+cv::Mat Tree::run() const
+{
+    return runSubtree(root_.get());
+}
+
+TreePtr Tree::clone(int newId) const
+{
+    return cloneSubtree(0, newId);
+}
+
+TreePtr Tree::cloneSubtree(int subrootI, int newId) const
+{
+    if (subrootI > (getSize() - 1))
     {
-        setSubtreeId(subroot->getChild(i));
+        string exception = "Nie ma wezla o takim numerze";
+        throw exception;
     }
+
+    int newDepth = getSubtreeDepth(subrootI);
+    TreePtr newTree(new Tree(newDepth, newId));
+    Node* subroot = getNode(subrootI);
+    newTree->clone(*subroot);
+
+    return newTree;
 }
 
-void tree::setRoot(node_ptr root)
+void Tree::setNode(int nodeNumber, const Node &node)
 {
-    string id = this->id + 'n' + to_string(0);
-    this->root = move(root);
-    this->root->setId(id);
-    checkDepth(this->root.get(), 1);
+    NodeParent nodeParent;
+    NodePtr newNode = node.clone();
+    Node* replacedNode = nullptr;
+    if(nodeNumber == 0)
+        replacedNode = root_.get();
+    else
+    {
+        nodeParent = getNodeParent(root_.get(), nodeNumber-1);
+        replacedNode = nodeParent.parent->getChild(nodeParent.childNumber);
+    }
+
+    newNode->giveChildren(*replacedNode);
+
+    if(nodeNumber == 0)
+        root_ = move(newNode);
+    else
+    {
+        nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
+    }
+
+    depth_ = 1;
+    checkDepth(root_.get(), depth_);
 }
 
-node* tree::getRoot() const
+void Tree::setSubtree(int nodeNumber, const Node &root)
 {
-    return this->root.get();
+    NodePtr newNode = root.clone();
+    cloneSubtree(&root, newNode.get());
+
+    if(nodeNumber == 0)
+        root_ = move(newNode);
+    else
+    {
+        NodeParent nodeParent = getNodeParent(root_.get(), nodeNumber-1);
+        nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
+    }
+
+    depth_ = 1;
+    checkDepth(root_.get(), depth_);
 }
 
-node_ptr tree::returnRoot()
+int Tree::getId() const
 {
-    return move(this->root);
+    return id_;
 }
 
-node* tree::getNode(int i) const
+int Tree::getSize() const
+{
+    return getSubtreeSize(root_.get());
+}
+
+int Tree::getSubtreeSize(Node* subroot) const
+{
+    int size = 1;
+    for (int i = 0; i < subroot->getSize(); i++)
+    {
+        size += getSubtreeSize(subroot->getChild(i));
+    }
+
+    return size;
+}
+
+int Tree::getDepth() const
+{
+    return depth_;
+}
+
+int Tree::getSubtreeDepth(int subrootI) const
+{
+    if (subrootI > (this->getSize() - 1))
+    {
+        string exception = "Nie ma wezla o takim numerze";
+        throw exception;
+    }
+
+    return getSubtreeDepth(getNode(subrootI), 1);
+}
+
+string Tree::write() const
+{
+    string treeString = "::::::::::: treeId: "
+                + to_string(id_) + " ::::::::::::\n";
+    string arrows = "";
+    treeString += writeSubtree(root_.get(), arrows);
+
+    return treeString;
+}
+
+int Tree::getSubtreeDepth(Node* subroot, int depth) const
+{
+    int maxDepth = 0;
+    for (int i = 0; i < subroot->getSize(); i++)
+    {
+        maxDepth = getSubtreeDepth(subroot->getChild(i), depth+1);
+    }
+    if (depth > maxDepth)
+        maxDepth = depth;
+
+    return maxDepth;
+}
+
+Node *Tree::getRoot() const
+{
+    return root_.get();
+}
+
+Node *Tree::getNode(int i) const
 {
     if (i == 0)
-        return this->root.get();
-    return getNode(this->root.get(), i-1);
+        return root_.get();
+
+    NodeParent nodeParent = getNodeParent(root_.get(), i-1);
+    return nodeParent.parent->getChild(nodeParent.childNumber);
 }
 
-node* tree::getNode(node* subroot, int n) const
+int Tree::initialize(NodeGenerator &generator, Node *subroot, bool terminal)
 {
-    node* retNode = subroot;
-    int childrenSize = subroot->getChildrenSize();
-    if (n < childrenSize)
+    if (subroot == nullptr)
+        throw string("Nie istnieje taki wezel");
+
+    if (terminal == true)
     {
-        retNode = subroot->getChild(n);
+        for (int i = 0; i < subroot->getSize(); i++)
+        {
+            subroot->addChild( TerminalNode::create(0) );
+            counterNodes_++;
+        }
+
+        return 1;
     } else
+    {
+        for (int i = 0; i < subroot->getSize(); i++)
+        {
+            subroot->addChild( generator.createRandomPtr() );
+            counterNodes_++;
+        }
+    }
+
+    return 0;
+}
+
+void Tree::initializeRoot(NodeGenerator &generator)
+{
+    if (depth_ <= 1)
+        root_ = NodePtr( TerminalNode::create(0) );
+    else
+        root_ = move( generator.createRandomPtr() );
+    counterNodes_++;
+}
+
+int Tree::initializeGrow(NodeGenerator &generator, Node *subroot, int depth)
+{
+    int isEnd = 0;
+    if (depth < (depth_ - (1 + rand() % 2))) isEnd = rand() % 2;
+        //Choose randomly if children of subroot should be terminals.
+    initialize(generator, subroot, (depth <= 1 || isEnd));
+
+    for (int i = 0; i < subroot->getSize(); i++)
+    {
+        initializeGrow(generator, subroot->getChild(i), depth-1);
+    }
+
+    return 0;
+}
+
+int Tree::initializeFull(NodeGenerator &generator, Node *subroot, int depth)
+{
+    initialize(generator, subroot, (depth <= 1));
+
+    for (int i = 0; i < subroot->getSize(); i++)
+    {
+        initializeFull(generator, subroot->getChild(i), depth-1);
+    }
+
+    return 0;
+}
+
+NodeParent Tree::getNodeParent(Node *subroot, int n) const
+{
+    NodeParent retNodeParent;
+    retNodeParent.parent = subroot;
+    retNodeParent.childNumber = n;
+    int childrenSize = subroot->getSize();
+    if (n >= childrenSize)
     {
         for (int i = 0; i < childrenSize; i++)
         {
-            node* child = subroot->getChild(i);
-            int subtreeSize = this->getSubtreeSize(child);
+            Node* child = subroot->getChild(i);
+            int subtreeSize = getSubtreeSize(child);
             if ( n  < subtreeSize + 1 )
             {
-                retNode = getNode(child, n-childrenSize);
+                retNodeParent = getNodeParent(child, n-childrenSize);
                 break;
             }
             else
@@ -104,24 +255,12 @@ node* tree::getNode(node* subroot, int n) const
         }
     }
 
-    return retNode;
+    return retNodeParent;
 }
 
-void tree::setSubtree(int i, node_ptr newNode)
+void Tree::setSubtree(Node *subroot, int n, NodePtr newNode)
 {
-    if (i > (this->getSize() - 1))
-    {
-        string exception = "Numer wezla wiekszy od liczby wezlow w drzewie";
-        throw exception;
-    }
-    if (i == 0)
-        setRoot( move(newNode) );
-    setSubtree(this->root.get(), i-1, move(newNode));
-}
-
-void tree::setSubtree(node* subroot, int n, node_ptr newNode)
-{
-    int childrenSize = subroot->getChildrenSize();
+    int childrenSize = subroot->getSize();
     if (n < childrenSize)
     {
         subroot->setChild(n, move(newNode));
@@ -129,7 +268,7 @@ void tree::setSubtree(node* subroot, int n, node_ptr newNode)
     {
         for (int i = 0; i < childrenSize; i++)
         {
-            node* child = subroot->getChild(i);
+            Node* child = subroot->getChild(i);
             int subtreeSize = this->getSubtreeSize(child);
             if ( n  < subtreeSize + 1 )
             {
@@ -142,137 +281,55 @@ void tree::setSubtree(node* subroot, int n, node_ptr newNode)
     }
 }
 
-string tree::getId() const
+string Tree::writeSubtree(Node *subroot, string arrows) const
 {
-    return this->id;
-}
-
-int tree::getDepth() const
-{
-    return this->depth;
-}
-
-int tree::getSize() const
-{
-    return getSubtreeSize(this->root.get());
-}
-
-int tree::getSubtreeSize(node* subroot) const
-{
-    int size = 1;
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
+    string subtreeString = arrows + subroot->write();
+    subtreeString += "\n";
+    arrows += "------->";
+    for (int i = 0; i < subroot->getSize(); i++)
     {
-        size += getSubtreeSize(subroot->getChild(i));
+        subtreeString += writeSubtree(subroot->getChild(i), arrows);
     }
 
-    return size;
+    return subtreeString;
 }
 
-void tree::initialize(typeInit type, const functionSet &functions,
-                      const terminalSet &terminals)
+void Tree::clone(const Tree &rhs)
 {
-    if (counterNodes > 1)
-    {
-        string exception = "Drzewo zostalo juz zainicjowane";
-        throw exception;
-    }
-
-    initializeRoot(functions, terminals);
-
-    if (type == GROW_INIT)
-    {
-        initializeGrow(functions, terminals, this->root.get(), this->depth-1);
-        this->depth = 1;
-        checkDepth(this->root.get(), this->depth);
-            //Change depth, After grow init can be different
-    } else if (type == FULL_INIT)
-        initializeFull(functions, terminals, this->root.get(), this->depth-1);
+    root_ = rhs.getRoot()->clone();
+    cloneSubtree(rhs.getRoot(), root_.get());
 }
 
-int tree::initializeGrow(const functionSet& functions, const terminalSet& terminals,
-                         node* subroot, int depth)
+void Tree::clone(const Node &rhs)
 {
-    if (subroot == nullptr)
+    root_ = rhs.clone();
+    cloneSubtree(&rhs, root_.get());
+}
+
+int Tree::cloneSubtree(const Node *subroot, Node *newSubroot)
+{
+    for (int i = 0; i < subroot->getSize(); i++)
     {
-        string exception = "Nie istnieje taki wezel";
-        throw exception;
-    }
-    int isEnd = 0;
-    if (depth < (this->depth - (1 + rand() % 2))) isEnd = rand() % 2;
-        //Choose randomly if children of subroot should be terminals.
-    if (depth <= 1 || isEnd)
-    {
-        for (int i = 0; i < subroot->getArgumentsNumber(); i++)
-        {
-            string id = this->id + 'n' + to_string(counterNodes++);
-            subroot->addChild(node_ptr( new termNode(terminals.getRandomImage(), id) ));
-        }
-        return 1;
-    } else
-    {
-        for (int i = 0; i < subroot->getArgumentsNumber(); i++)
-        {
-            subroot->addChild(move( this->getRandomNode(functions) ));
-        }
+        newSubroot->addChild( subroot->getChild(i)->clone() );
     }
 
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
+    for (int i = 0; i < subroot->getSize(); i++)
     {
-        initializeGrow(functions, terminals, subroot->getChild(i), depth-1);
+        cloneSubtree(subroot->getChild(i), newSubroot->getChild(i));
     }
 
     return 0;
 }
 
-int tree::initializeFull(const functionSet& functions, const terminalSet& terminals,
-                         node* subroot, int depth)
+cv::Mat Tree::runSubtree(Node *subroot) const
 {
     if (subroot == nullptr)
-    {
-        string exception = "Nie istnieje taki wezel";
-        throw exception;
-    }
-    if (depth <= 1)
-    {
-        for (int i = 0; i < subroot->getArgumentsNumber(); i++)
-        {
-            string id = this->id + 'n' + to_string(counterNodes++);
-            subroot->addChild(node_ptr( new termNode(terminals.getRandomImage(), id) ));
-        }
+        throw string("Nie istnieje taki wezel");
 
-        return 1;
-    } else
-    {
-        for (int i = 0; i < subroot->getArgumentsNumber(); i++)
-        {
-            subroot->addChild(move( this->getRandomNode(functions) ));
-        }
-    }
-
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        initializeFull(functions, terminals, subroot->getChild(i), depth-1);
-    }
-
-    return 0;
-}
-
-Mat tree::run()
-{
-    return runSubtree(this->root.get());
-}
-
-Mat tree::runSubtree(node* subroot)
-{
-    if (subroot == nullptr)
-    {
-        string exception = "Nie istnieje taki wezel";
-        throw exception;
-    }
     Mat result; // the result of function
     vector<Mat> arg; // arguments of function
 
-    for (int i = 0; i < subroot->getArgumentsNumber(); i++)
+    for (int i = 0; i < subroot->getSize(); i++)
     {
         arg.push_back( runSubtree(subroot->getChild(i)) );
     }
@@ -282,159 +339,12 @@ Mat tree::runSubtree(node* subroot)
     return result;
 }
 
-tree_ptr tree::copy(string newId)
+void Tree::checkDepth(Node *subroot, int depth)
 {
-    return move( this->copySubtree(0, newId) );
-}
-
-tree_ptr tree::copySubtree(int subrootI, string newId)
-{
-    if (subrootI > (this->getSize() - 1))
-    {
-        string exception = "Nie ma wezla o takim numerze";
-        throw exception;
-    }
-    node* subroot = this->getNode(subrootI);
-    node_ptr newRoot( subroot->copyAttribute() );
-
-    copySubtree(subroot, newRoot.get());
-
-    int newDepth = getSubtreeDepth(subrootI);
-    tree_ptr newTree(new tree(newDepth));
-    newTree->setRoot( move(newRoot) );
-    newTree->setId(newId);
-
-    return newTree;
-}
-
-tree_ptr tree::copy()
-{
-    return move( this->copySubtree(0) );
-}
-
-tree_ptr tree::copySubtree(int subrootI)
-{
-    if (subrootI > (this->getSize() - 1))
-    {
-        string exception = "Nie ma wezla o takim numerze";
-        throw exception;
-    }
-    node* subroot = this->getNode(subrootI);
-    node_ptr newRoot( subroot->copyAttribute() );
-
-    copySubtree(subroot, newRoot.get());
-
-    int newDepth = getSubtreeDepth(subrootI);
-    tree_ptr newTree(new tree(newDepth));
-    newTree->setRoot( move(newRoot) );
-
-    return newTree;
-}
-
-int tree::copySubtree(node* subroot, node* newSubroot)
-{
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        node_ptr newNode( subroot->getChild(i)->copyAttribute() );
-        newSubroot->addChild( move(newNode) );
-    }
-
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        copySubtree(subroot->getChild(i), newSubroot->getChild(i));
-    }
-
-    return 0;
-}
-
-int tree::getSubtreeDepth(int subrootI) const
-{
-    if (subrootI > (this->getSize() - 1))
-    {
-        string exception = "Nie ma wezla o takim numerze";
-        throw exception;
-    }
-
-    return getSubtreeDepth(this->getNode(subrootI), 1);
-}
-
-int tree::getSubtreeDepth(node* subroot, int depth) const
-{
-    int maxDepth = 0;
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        maxDepth = getSubtreeDepth(subroot->getChild(i), depth+1);
-    }
-    if (depth > maxDepth)
-        maxDepth = depth;
-
-    return maxDepth;
-}
-
-node_ptr tree::getRandomNode(const functionSet &functions)
-{
-    int random = rand() % 3;
-    node_ptr randomNode = nullptr;
-    if (random == 0)
-    {
-        string id = this->id + 'n' + to_string(counterNodes++);
-        randomNode = node_ptr( new funcNode(functions.getRandomFunction(), id) );
-    } else
-    {
-
-        string id = this->id + 'n' + to_string(counterNodes++);
-        randomNode = node_ptr( new morphoNode(functions.getRandomOperation(), id,
-                                    functions.getRandomMorphParameters()) );
-    }
-    return randomNode;
-}
-
-void tree::show()
-{
-    cout << "::::::::::: treeId: " << this->id << " ::::::::::::" << endl;
-    showSubtree(this->root.get(), "");
-    cout<<endl;
-}
-
-void tree::showSubtree(node *subroot, string cou)
-{
-    cout << cou;
-    subroot->show();
-    cou+="----->";
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        showSubtree(subroot->getChild(i), cou);
-    }
-}
-
-void tree::checkDepth(node *subroot, int depth)
-{
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
+    for (int i = 0; i < subroot->getSize(); i++)
     {
         checkDepth(subroot->getChild(i), depth+1);
     }
-    if (depth > this->depth)
-        this->depth = depth;
-}
-
-string tree::writeTree()
-{
-    string treeString = "::::::::::: treeId: "
-            + this->id +
-            " ::::::::::::\n";
-    string arrows = "";
-    treeString += writeSubtree(this->root.get(), arrows);
-
-    return treeString;
-}
-
-string tree::writeSubtree(node *subroot, string arrows)
-{
-    string subtreeString = arrows + subroot->writeNode();
-    arrows += "------->";
-    for (int i = 0; i < subroot->getChildrenSize(); i++)
-    {
-        subtreeString += writeSubtree(subroot->getChild(i), arrows);
-    }
-    return subtreeString;
+    if (depth > depth_)
+    depth_ = depth;
 }

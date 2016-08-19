@@ -22,7 +22,7 @@ private:
     Ui::MainWindow *ui;
     QGraphicsScene *scene;
     QGraphicsPixmapItem *item;
-    application app;
+    Application app;
 
 private slots:
     void applicationStart();

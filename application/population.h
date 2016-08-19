@@ -3,32 +3,30 @@
 
 #include <vector>
 #include "tree.h"
-#include "functions.h"
 
-class population
+class Population
 {
-private:
-    std::vector <tree_ptr> individuals;
-    std::vector <tree_ptr>::iterator initializeIt;
-private:
-    int counterTrees;
 public:
-    population();
-    population(int size, int treeDepth, int generationNumber);
-    ~population();
+    Population();
+    Population(int size, int treeDepth, int generationNumber);
+    ~Population();
 
 public:
     void erase(int i);
     void create(int size, int treeDepth, int generationNumber);
-    void init(const functionSet& functions, const terminalSet& terminals);
-    void addIndividual(tree_ptr newIndividual, int generationNumber);
-    tree* getIndividual (int i);
+    void init(NodeGenerator& generator);
+    void addIndividual(TreePtr newIndividual, int generationNumber);
+    Tree* getIndividual (int i);
     int getSize();
-    void swap(population* newPopulation);
+    void swap(Population* newPopulation);
     void clear();
-    void show();
     void savePopulation(int generationNumber, std::string katalog);
 
+private:
+    std::vector<TreePtr> individuals_;
+    std::vector<TreePtr>::iterator initializeIt_;
+private:
+    int counterTrees_;
 };
 
 #endif // POPULATION_H

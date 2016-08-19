@@ -2,13 +2,14 @@
 
 #include <stdlib.h>
 #include <QtCore>
+#include <iostream>
 
 using namespace std;
 using namespace cv;
 
-application::application()
+Application::Application()
 {
-    string katalog = "imgwyj2";
+    string katalog = "rejestracja";
 
     string command = "rm -r  ";
     command += katalog;
@@ -27,7 +28,7 @@ application::application()
     this->best.programResult = 10000000;
 
     this->generationNumber = 0;
-    this->populationSize = 300;
+    this->populationSize = 200;
     this->treeDepth = 8;
     this->hoistMutationProbability = 0.01;
     this->nodeMutationProbability = 0.07;
@@ -39,21 +40,23 @@ application::application()
     this->fitType = HAMMING;
     this->tournamentSize = 40;
     this->parentsSize = 40;
-    setImages("imgwejsciowy1.png", "imgwyjsciowy1.png");
+    setImages("rejestracja.png", "rejestracja_ref.png");
 
-    functions.addFunction("bitwiseNot");
-    functions.addFunction("bitwiseXor");
-    functions.addFunction("bitwiseOr");
-    functions.addFunction("bitwiseAnd");
-    functions.addOperation("morphologyOperation");
+    FunctionNode::getFunctionSet().addFunction("bitwiseNot");
+    //FunctionNode::getFunctionSet().addFunction("bitwiseXor");
+    //FunctionNode::getFunctionSet().addFunction("bitwiseOr");
+    //FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
+
+    generator.registerObject(0.35, FunctionNode::create);
+    generator.registerObject(0.65, MorphoNode::create);
 }
 
-void application::setKatalog(string katalog)
+void Application::setKatalog(string katalog)
 {
     this->katalog = katalog;
 }
 
-void application::setImages(string inputImage, string referenceImage)
+void Application::setImages(string inputImage, string referenceImage)
 {
     this->inputImage = imread(inputImage, 0);
     if( !this->inputImage.data )
@@ -61,7 +64,7 @@ void application::setImages(string inputImage, string referenceImage)
         string exception = "Could not open or find the input image";
         throw exception;
     }
-    this->terminals.setInputImage( Mat_ptr(new Mat(this->inputImage)) );
+    TerminalNode::getTerminalSet().setTerminal( MatPtr(new Mat(this->inputImage)) );
     this->referenceImage = imread(referenceImage, 0);
     if( !this->referenceImage.data )
     {
@@ -70,23 +73,23 @@ void application::setImages(string inputImage, string referenceImage)
     }
 }
 
-void application::setParameters(int populationSize,
-                                selectionType selectType,
-                                fitnessType fitType)
+void Application::setParameters(int populationSize,
+                                SelectionType selectType,
+                                FitnessType fitType)
 {
     this->populationSize = populationSize;
     this->selectType = selectType;
     this->fitType = fitType;
 }
 
-void application::setCrossoverParameters(double subtreeCrossoverProbability,
+void Application::setCrossoverParameters(double subtreeCrossoverProbability,
                                          double arity2CrossoverProbability)
 {
     this->subtreeCrossoverProbability = subtreeCrossoverProbability;
     this->arity2CrossoverProbability = arity2CrossoverProbability;
 }
 
-void application::setMutationParameters(double hoistMutationProbability,
+void Application::setMutationParameters(double hoistMutationProbability,
                                         double nodeMutationProbability,
                                         double collapseMutationProbability,
                                         double subtreeMutationProbability)
@@ -97,17 +100,7 @@ void application::setMutationParameters(double hoistMutationProbability,
     this->subtreeMutationProbability = subtreeMutationProbability;
 }
 
-void application::setFunctionSet(std::vector<string> functionSet)
-{
-    this->functions.clear();
-    this->functions.addOperation("morphologyOperation");
-    for (size_t i = 0; i < functionSet.size(); i++)
-    {
-        this->functions.addFunction(functionSet[i]);
-    }
-}
-
-int application::distance(const vector<Point> &a,const vector<Point> &b)
+int Application::distance(const vector<Point> &a,const vector<Point> &b)
 {
     int maxDistAB = 0;
     for (size_t i = 0; i < a.size(); i++)
@@ -135,7 +128,7 @@ int application::distance(const vector<Point> &a,const vector<Point> &b)
     return maxDistAB;
 }
 
-int application::distanceHausdorff(const vector<Point> &a,const vector<Point> &b)
+int Application::distanceHausdorff(const vector<Point> &a,const vector<Point> &b)
 {
     int maxDistAB = distance(a, b);
     int maxDistBA = distance(b, a);
@@ -144,7 +137,7 @@ int application::distanceHausdorff(const vector<Point> &a,const vector<Point> &b
     return maxDist;
 }
 
-int application::fitnessHausdorffCanny(const Mat &A, const Mat &B)
+int Application::fitnessHausdorffCanny(const Mat &A, const Mat &B)
 {
     vector<Point> a, b, c;
     Mat C, D;
@@ -164,7 +157,7 @@ int application::fitnessHausdorffCanny(const Mat &A, const Mat &B)
     return measure;
 }
 
-int application::fitnessHausdorffSmall(const Mat &A, const Mat &B)
+int Application::fitnessHausdorffSmall(const Mat &A, const Mat &B)
 {
     vector<Point> a, b, c;
     Mat C, D;
@@ -185,7 +178,7 @@ int application::fitnessHausdorffSmall(const Mat &A, const Mat &B)
     return measure;
 }
 
-int application::fitnessHamming(const Mat &A, const Mat &B)
+int Application::fitnessHamming(const Mat &A, const Mat &B)
 {
     Mat C, D, E;
 
@@ -206,73 +199,51 @@ int application::fitnessHamming(const Mat &A, const Mat &B)
     return measure;
 }
     //Change with random subtree
-tree_ptr application::subtreeMutation(tree *parent)
+TreePtr Application::subtreeMutation(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
     int subtreeDepth = parent->getSubtreeDepth(mutationPoint);
-    tree_ptr newSubtree(new tree(subtreeDepth));
-    newSubtree->initialize(FULL_INIT, functions, terminals);
-    tree_ptr offspring = move( parent->copy() );
-    offspring->setSubtree(mutationPoint, move(newSubtree->returnRoot()) );
+    Tree newSubtree(subtreeDepth, 0);
+    newSubtree.initialize(FULL_INIT, generator);
+    TreePtr offspring = move( parent->clone(0) );
+    offspring->setSubtree(mutationPoint, *newSubtree.getRoot());
 
     return move(offspring);
 }
-    //Change with random node
-tree_ptr application::nodeMutation(tree *parent)
+    //Mutate random node
+TreePtr Application::nodeMutation(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
-        //Create new node based on type of mutation point node
-    node_ptr newNode;
-    if (parent->getNode(mutationPoint)->getType() == TERMINAL_NODE)
-        newNode = node_ptr( new termNode(terminals.getRandomImage()) );
-    else
-    {
-        if (parent->getNode(mutationPoint)->getType() == FUNCTION_NODE)
-        {
-            node* mut = parent->getNode(mutationPoint);
-            newNode = node_ptr( new funcNode(functions.getRandomFunction
-                                           ( parent->getNode(mutationPoint)->getArgumentsNumber() )) );}
-        else if ((parent->getNode(mutationPoint)->getType() == MORPHOLOGY_NODE))
-            newNode = node_ptr( new morphoNode(functions.getRandomOperation(),
-                                             functions.getRandomMorphParameters()) );
-            //Copy new subtree at mutation point and make children of this subtree root
-            //become children of new node
-        tree_ptr newSubtree( move(parent->copySubtree(mutationPoint)) );
-        for (int i = 0; i < newNode->getArgumentsNumber(); i++)
-        {
-            newNode->addChild( newSubtree->getRoot()->returnChild(0) );
-                                     // 0 - cause returnChild() also delete this child from parent children
-        }
-    }
-    tree_ptr offspring = move( parent->copy() );
-    offspring->setSubtree(mutationPoint, move(newNode) );
+
+    TreePtr offspring = move( parent->clone(0) );
+    offspring->getNode(mutationPoint)->mutate();
 
     return move(offspring);
 }
     //Offspring is subtree of parent
-tree_ptr application::hoistMutation(tree *parent)
+TreePtr Application::hoistMutation(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
+    while(parent->getNode(mutationPoint)->getId().type == TERMINAL_NODE)
+        mutationPoint = getRandomMutationPoint(parent);
         //Offspring is subtree with randomly picked node
-    tree_ptr offspring = move( parent->copySubtree(mutationPoint) );
-    if ( offspring->getRoot()->getType() == TERMINAL_NODE )
-        offspring = move(parent->copy());
+    TreePtr offspring = parent->cloneSubtree(mutationPoint, 0);
 
     return move(offspring);
 }
     //Change with terminal node
-tree_ptr application::collapseMutation(tree *parent)
+TreePtr Application::collapseMutation(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
         //Changing radomly picked node with new term node.
-    node_ptr newNode( new termNode(terminals.getRandomImage()) );
-    tree_ptr offspring = move( parent->copy() );
-    offspring->setSubtree(mutationPoint, move(newNode));
+    NodePtr newNode( TerminalNode::create(0) );
+    TreePtr offspring = move( parent->clone(0) );
+    offspring->setNode(mutationPoint, *newNode);
 
     return move(offspring);
 }
 
-tree_ptr application::subtreeCrossover(tree *parent1, tree *parent2)
+TreePtr Application::subtreeCrossover(Tree *parent1, Tree *parent2)
 {
     int mutationPoint = 1;
     if (parent1->getSize() > parent2->getSize())
@@ -283,37 +254,38 @@ tree_ptr application::subtreeCrossover(tree *parent1, tree *parent2)
         mutationPoint = getRandomMutationPoint(parent1);
     }
 
-    tree_ptr newSubtree = move(parent1->copySubtree(mutationPoint));
-    tree_ptr offspring = move( parent2->copy() );
-    offspring->setSubtree(mutationPoint, move(newSubtree->returnRoot()) );
+    TreePtr newSubtree = move(parent1->cloneSubtree(mutationPoint, 0));
+    TreePtr offspring = move( parent2->clone(0) );
+    offspring->setSubtree(mutationPoint, *newSubtree->getRoot() );
 
     return move(offspring);
 }
 
-tree_ptr application::arity2Crossover(tree *parent1, tree *parent2)
-{
-    int mutationPoint = getRandomMutationPoint(parent1);
-    tree_ptr newSubtree1 = move(parent1->copySubtree(mutationPoint));
+//TreePtr Application::arity2Crossover(Tree *parent1, Tree *parent2)
+//{
+//    int mutationPoint = getRandomMutationPoint(parent1);
+//    TreePtr newSubtree1 = move(parent1->copySubtree(mutationPoint));
 
-    mutationPoint = getRandomMutationPoint(parent2);
-    tree_ptr newSubtree2 = move(parent2->copySubtree(mutationPoint));
-    node_ptr newRoot( new funcNode(functions.getRandomFunction(2)) );
-    newRoot->addChild(newSubtree1->returnRoot());
-    newRoot->addChild(newSubtree2->returnRoot());
+//    mutationPoint = getRandomMutationPoint(parent2);
+//    TreePtr newSubtree2 = move(parent2->copySubtree(mutationPoint));
 
-    tree_ptr offspring( new tree(3) );
-    offspring->setRoot( move(newRoot) );
+//    NodePtr newRoot( new FunctionNode(functions.getRandomFunction(2)) );
+//    newRoot->addChild(newSubtree1->returnRoot());
+//    newRoot->addChild(newSubtree2->returnRoot());
 
-    return move(offspring);
-}
+//    TreePtr offspring( new tree(3) );
+//    offspring->setRoot( move(newRoot) );
 
-int application::getRandomMutationPoint(tree *parent)
+//    return move(offspring);
+//}
+
+int Application::getRandomMutationPoint(Tree *parent)
 {
     int mutationPoint = 1 + rand() % (parent->getSize() - 1);
         //Randomly picking node which isnt terminal node
     for (int i = 0; i < parent->getSize(); i++)
     {
-        if ( parent->getNode(mutationPoint)->getType() == TERMINAL_NODE )
+        if ( parent->getNode(mutationPoint)->getId().type == TERMINAL_NODE )
             mutationPoint = 1 + rand() % (parent->getSize() - 1);
         else
             break;
@@ -322,7 +294,7 @@ int application::getRandomMutationPoint(tree *parent)
 }
 
 
-int application::fitnessMeasure(tree *individual)
+int Application::fitnessMeasure(Tree *individual)
 {
     Mat image = individual->run();
     int measure = 10000;
@@ -342,7 +314,7 @@ int application::fitnessMeasure(tree *individual)
     return measure;
 }
 
-void application::assessIndividuals()
+void Application::assessIndividuals()
 {
     this->standardizedIndividuals.clear();
     this->normalizedIndividuals.clear();
@@ -351,10 +323,10 @@ void application::assessIndividuals()
     for (int i = 0; i < this->actualPopulation.getSize(); i++)
     {
         if ( this->isStopped == 1 ) return;
-        tree* individual = this->actualPopulation.getIndividual(i);
+        Tree* individual = this->actualPopulation.getIndividual(i);
         int measure = fitnessMeasure(individual);
-        pair<int,tree*> p = make_pair(measure, individual);
-        pair<double,tree*> n = make_pair((double)measure, individual);
+        pair<int,Tree*> p = make_pair(measure, individual);
+        pair<double,Tree*> n = make_pair((double)measure, individual);
         this->sortedIndividuals.insert(p);
         this->parents.insert(p);
         this->normalizedIndividuals.push_back(n);
@@ -367,21 +339,21 @@ void application::assessIndividuals()
     pickParents();
 }
 
-void application::pickParents()
+void Application::pickParents()
 {
         //create temporary container
-    map<int,tree*> tempMap;
+    map<int,Tree*> tempMap;
         //copy 20 first element
-    map<int,tree*>::iterator end = this->parents.begin();
+    map<int,Tree*>::iterator end = this->parents.begin();
     for (int i = 0; i < this->parentsSize; i++)
         ++end;
     tempMap.insert(this->parents.begin(), end);
     this->parents.swap(tempMap);
 }
 
-void application::normalizeFitness()
+void Application::normalizeFitness()
 {
-    map<int,tree*>::iterator it =
+    map<int,Tree*>::iterator it =
             this->sortedIndividuals.end();
     --it;
     int worst = it->first;
@@ -400,28 +372,28 @@ void application::normalizeFitness()
     {
         double normalized = i.first / sum;
         normalizedSum += normalized;
-        pair<double,tree*> p = make_pair(normalized, i.second);
+        pair<double,Tree*> p = make_pair(normalized, i.second);
         this->normalizedIndividuals.push_back(p);
     }
 }
 
-void application::standardizeFitness()
+void Application::standardizeFitness()
 {
     vector<double_tree> standardizedIndividuals;
     this->standardizedIndividuals.swap(standardizedIndividuals);
-    map<int,tree*>::iterator it =
+    map<int,Tree*>::iterator it =
             this->sortedIndividuals.end();
     --it;
     int worst = it->first;
     for (auto const &i: standardizedIndividuals)
     {
         double standardized = i.first / worst;
-        pair<double,tree*> p = make_pair(standardized, i.second);
+        pair<double,Tree*> p = make_pair(standardized, i.second);
         this->standardizedIndividuals.push_back(p);
     }
 }
 
-tree* application::selectIndividual()
+Tree* Application::selectIndividual()
 {
     switch(this->selectType)
     {
@@ -436,16 +408,16 @@ tree* application::selectIndividual()
     return nullptr;
 }
 
-tree* application::selectIndividualFromParents()
+Tree* Application::selectIndividualFromParents()
 {
     int random = rand() % this->parents.size();
-    std::map<int,tree*>::iterator it = this->parents.begin();
+    std::map<int,Tree*>::iterator it = this->parents.begin();
     for (int i = 0; i < random; i++)
         ++it;
     return it->second;
 }
 
-tree* application::selectIndividualByFitenss()
+Tree* Application::selectIndividualByFitenss()
 {
     double decision = ((double) rand() / (RAND_MAX));
     double sum = 0;
@@ -459,7 +431,7 @@ tree* application::selectIndividualByFitenss()
     return nullptr;
 }
 
-tree* application::selectIndividualByTournament(int tournamentSize)
+Tree* Application::selectIndividualByTournament(int tournamentSize)
 {
         //extract subvector with tournament size
      int index = rand() % (this->standardizedIndividuals.size() - tournamentSize);
@@ -480,63 +452,63 @@ tree* application::selectIndividualByTournament(int tournamentSize)
      return bestIndividual.second;
 }
 
-tree_ptr application::createNewIndividual()
+TreePtr Application::createNewIndividual()
 {
         //random for select genetic operation with different probabilities
     double random = (double)rand() / (RAND_MAX);
     double probability1 = this->subtreeCrossoverProbability;
+//    double probability2 = probability1 +
+//            this->arity2CrossoverProbability;
     double probability2 = probability1 +
-            this->arity2CrossoverProbability;
-    double probability3 = probability2 +
             this->subtreeMutationProbability;
-    double probability4 = probability3 +
+    double probability3 = probability2 +
             this->nodeMutationProbability;
-    double probability5 = probability4 +
+    double probability4 = probability3 +
             this->hoistMutationProbability;
-    double probability6 = probability5 +
+    double probability5 = probability4 +
             this->collapseMutationProbability;
-    tree_ptr newIndividual;
+    TreePtr newIndividual;
     if ( random < probability1 )
     {
-        tree* parent1 = selectIndividual();
-        tree* parent2 = selectIndividual();
+        Tree* parent1 = selectIndividual();
+        Tree* parent2 = selectIndividual();
         newIndividual = move(subtreeCrossover(parent1, parent2));
 
-    } else if ( random < probability2 )
+    } /*else if ( random < probability2 )
     {
-        tree* parent1 = selectIndividual();
-        tree* parent2 = selectIndividual();
+        Tree* parent1 = selectIndividual();
+        Tree* parent2 = selectIndividual();
         newIndividual = move(arity2Crossover(parent1, parent2));
+    } */else if ( random < probability2 )
+    {
+        Tree* parent = selectIndividual();
+        newIndividual = move(subtreeMutation(parent));
     } else if ( random < probability3 )
     {
-        tree* parent = selectIndividual();
-        newIndividual = move(subtreeMutation(parent));
+        Tree* parent = selectIndividual();
+        newIndividual = move(nodeMutation(parent));
     } else if ( random < probability4 )
     {
-        tree* parent = selectIndividual();
-        newIndividual = move(nodeMutation(parent));
+        Tree* parent = selectIndividual();
+        newIndividual = move(hoistMutation(parent));
     } else if ( random < probability5 )
     {
-        tree* parent = selectIndividual();
-        newIndividual = move(hoistMutation(parent));
-    } else if ( random < probability6 )
-    {
-        tree* parent = selectIndividual();
+        Tree* parent = selectIndividual();
         newIndividual = move(collapseMutation(parent));
     } else //if any other genetic operation just copy - reproduction
     {
-        tree* parent = selectIndividual();
-        newIndividual = move(parent->copy());
+        Tree* parent = selectIndividual();
+        newIndividual = move(parent->clone(0));
     }
 
     return move(newIndividual);
 }
 
-void application::evolution()
+void Application::evolution()
 {
     newPopulation.clear();
-    map<int,tree*>::iterator it = this->parents.begin();
-    newPopulation.addIndividual( move(it->second->copy()),
+    map<int,Tree*>::iterator it = this->parents.begin();
+    newPopulation.addIndividual( move(it->second->clone(0)),
                                  this->generationNumber);
     for (int i = 0; i < (this->populationSize - 1); i++)
     {
@@ -549,19 +521,19 @@ void application::evolution()
     actualPopulation.swap(&newPopulation);
 }
 
-void application::init()
+void Application::init()
 {
     this->actualPopulation.create(
                 this->populationSize,
                 this->treeDepth,
                 this->generationNumber);
-    this->actualPopulation.init(functions, terminals);
+    this->actualPopulation.init(generator);
 }
 
-void application::saveBest(string &program)
+void Application::saveBest(string &program)
 {
         //write best image
-    map<int,tree*>::iterator it = this->sortedIndividuals.begin();
+    map<int,Tree*>::iterator it = this->sortedIndividuals.begin();
     int measure = it->first;
     string folder = katalog;
     Mat result = it->second->run();
@@ -578,12 +550,12 @@ void application::saveBest(string &program)
     plik.close();
 }
 
-void application::stop()
+void Application::stop()
 {
     this->isStopped = 1;
 }
 
-void application::run()
+void Application::run()
 {
     this->generationNumber = 0;
     emit getGeneration(this->generationNumber);
@@ -591,8 +563,8 @@ void application::run()
     emit getOperation("Inicjacja");
     init();
     assessIndividuals();
-    tree* bestIndividual = this->sortedIndividuals.begin()->second;
-    string program = bestIndividual->writeTree();
+    Tree* bestIndividual = this->sortedIndividuals.begin()->second;
+    string program = bestIndividual->write();
     saveBest(program);
     //actualPopulation.savePopulation(987, this->katalog);
     checkIfBetterSolution();
@@ -613,16 +585,17 @@ void application::run()
         assessIndividuals();
 
         bestIndividual = this->sortedIndividuals.begin()->second;
-        program = bestIndividual->writeTree();
+        program = bestIndividual->write();
         saveBest(program);
 
         checkIfBetterSolution();
         //actualPopulation.savePopulation(this->generationNumber, this->katalog);
 
-        if ( this->best.programResult < this->minResult ) break;
+        if ( this->best.programResult < this->minResult )
+            break;
         if ( this->best.programResult < 500 )
         {
-            this->fitType = HAMMING;
+            this->fitType = HAUSDORFF_CANNY;
             this->best.programResult = 10000000;
         }
 
@@ -631,16 +604,20 @@ void application::run()
     }
 
     this->bestIndividualOutput = bestIndividual->run();
+    bestIndividual = this->sortedIndividuals.begin()->second;
+    program = bestIndividual->write();
+    saveBest(program);
 }
 
-void application::checkIfBetterSolution()
+void Application::checkIfBetterSolution()
 {
     int bestProgramResult = this->sortedIndividuals.begin()->first;
     if ( bestProgramResult < this->best.programResult )
     {
-        tree* program = this->sortedIndividuals.begin()->second;
-        string id = program->getId();
-        this->bestProgram = move( program->copy(id) );
+        Tree* program = this->sortedIndividuals.begin()->second;
+        cout << program->write() << endl;
+        int id = program->getId();
+        this->bestProgram = move( program->clone(id) );
         int treeNumber = 15;
 
         this->best.generationNumber = this->generationNumber;

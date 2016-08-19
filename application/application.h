@@ -2,23 +2,22 @@
 #define APPLICATION_H
 
 #include "population.h"
-#include "functions.h"
 #include <map>
 #include <vector>
 #include <fstream>
 #include <QtCore>
 
-typedef std::pair<double,tree*> double_tree;
+typedef std::pair<double,Tree*> double_tree;
 
 struct bestIndividual
 {
     int generationNumber;
     int individualNumber;
     int programResult;
-    Mat image;
+    cv::Mat image;
 };
 
-enum selectionType
+enum SelectionType
 {
     SELECTION,
     RANK_SELECTION,
@@ -26,7 +25,7 @@ enum selectionType
     ROULETTE_SELECTION
 };
 
-enum mutationType
+enum MutationType
 {
     SUBTREE_MUTATION,
     NODE_MUTATION,
@@ -34,20 +33,20 @@ enum mutationType
     COLLAPSE_MUTATION
 };
 
-enum crossoverType
+enum CrossoverType
 {
     SUBTREE_CROSSOVER,
     ARITY2_CROSSOVER
 };
 
-enum fitnessType
+enum FitnessType
 {
     HAUSDORFF_SMALL,
     HAUSDORFF_CANNY,
     HAMMING
 };
 
-class application: public QThread
+class Application: public QThread
 {
     Q_OBJECT
 
@@ -55,10 +54,8 @@ private:
     std::string katalog;
     bool isStopped;
 
-    population actualPopulation;
-    population newPopulation;
-    functionSet functions;
-    terminalSet terminals;
+    Population actualPopulation;
+    Population newPopulation;
     int generationNumber;
     /*
      * Program parameters
@@ -68,8 +65,8 @@ private:
     /*
      * Genetic parameters
      */
-    Mat referenceImage;
-    Mat inputImage;
+    cv::Mat referenceImage;
+    cv::Mat inputImage;
     int populationSize;
     int treeDepth;
     double hoistMutationProbability;
@@ -80,42 +77,45 @@ private:
     double arity2CrossoverProbability;
     int tournamentSize;
     int parentsSize;
-    selectionType selectType;
-    fitnessType fitType;
+    SelectionType selectType;
+    FitnessType fitType;
+    NodeGenerator generator;
     /*
      * Best program result in GP
      */
     bestIndividual best;
-    tree_ptr bestProgram;
+    TreePtr bestProgram;
 public:
         //the less, the better fit individual
-    std::map<int,tree*> sortedIndividuals;
+    std::map<int,Tree*> sortedIndividuals;
         //the less, the better fit individual
-    std::map<int,tree*> parents;
+    std::map<int,Tree*> parents;
         //the more, the better fit individual
     std::vector<double_tree> normalizedIndividuals;
         //the less, the better fit individual
     std::vector<double_tree> standardizedIndividuals;
-    Mat bestIndividualOutput;
+    cv::Mat bestIndividualOutput;
 public:
-    application();
+    Application();
 public:
-    int fitnessMeasure(tree* individual);
+    int fitnessMeasure(Tree* individual);
 public:
     void init();
     void evolution();
-    tree_ptr createNewIndividual();
+    TreePtr createNewIndividual();
     void saveBest(std::string &program);
     void checkIfBetterSolution();
 public:
     /*
      * Fitness functions
      */
-    int distance(const std::vector<Point> & a, const std::vector<Point> & b);
-    int distanceHausdorff(const std::vector<Point> & a, const std::vector<Point> & b);
-    int fitnessHausdorffCanny(const Mat& A, const Mat& B);
-    int fitnessHausdorffSmall(const Mat& A, const Mat& B);
-    int fitnessHamming(const Mat& A, const Mat& B);
+    int distance(const std::vector<cv::Point> & a,
+                 const std::vector<cv::Point> & b);
+    int distanceHausdorff(const std::vector<cv::Point> & a,
+                          const std::vector<cv::Point> & b);
+    int fitnessHausdorffCanny(const cv::Mat& A, const cv::Mat& B);
+    int fitnessHausdorffSmall(const cv::Mat& A, const cv::Mat& B);
+    int fitnessHamming(const cv::Mat& A, const cv::Mat& B);
     /*!
      * \brief assessIndividuals Terminate all individuals
      * and sort them by fitness function.
@@ -147,40 +147,41 @@ public:
      * \param parent Offspring parent.
      * \return Offspring.
      */
-    tree_ptr subtreeMutation(tree* parent);
+    TreePtr subtreeMutation(Tree* parent);
     /*!
      * \brief hoistMutation Offspring is copy of
      * randomly picked subtree of parent.
      * \param parent Offspring parent.
      * \return Offspring.
      */
-    tree_ptr hoistMutation(tree* parent);
+    TreePtr hoistMutation(Tree* parent);
     /*!
      * \brief nodeMutation Offspring is copy of parent with
      * randomly changed one node.
      * \param parent Offspring parent.
      * \return Offspring.
      */
-    tree_ptr nodeMutation(tree* parent);
+    TreePtr nodeMutation(Tree* parent);
     /*!
      * \brief collapseMutation Offpring is copy of parent.
      * One of the node is changed to terminal node.
      * \param parent Offspring parent.
      * \return Offspring.
      */
-    tree_ptr collapseMutation(tree* parent);
+    TreePtr collapseMutation(Tree* parent);
     /*
      * Crossover functions
      */
-    tree_ptr subtreeCrossover(tree* parent1, tree* parent2);
-    tree_ptr arity2Crossover(tree* parent1, tree* parent2);
+    TreePtr subtreeCrossover(Tree* parent1, Tree* parent2);
+    TreePtr arity2Crossover(Tree* parent1, Tree* parent2);
     /*
      * Selection functions
      */
-    tree* selectIndividual();
-    tree* selectIndividualByFitenss();
-    tree* selectIndividualByTournament(int tournamentSize);
-    tree* selectIndividualFromParents();
+    Tree* selectIndividual();
+    Tree* selectIndividualByFitenss();
+    Tree* selectIndividualByTournament(int tournamentSize);
+    Tree* selectIndividualFromParents();
+
 public:
     void run();
     void stop();
@@ -190,13 +191,13 @@ public:
                                double subtreeMutationProbability);
     void setCrossoverParameters(double subtreeCrossoverProbability,
                                 double arity2CrossoverProbability);
-    void setParameters(int populationSize, selectionType selectType, fitnessType fitType);
+    void setParameters(int populationSize, SelectionType selectType, FitnessType fitType);
     void setFunctionSet(std::vector<std::string> functionSet);
     void setImages(std::string inputImage, std::string referenceImage);
     void setKatalog(std::string katalog);
 
 private:
-    int getRandomMutationPoint(tree* parent);
+    int getRandomMutationPoint(Tree* parent);
 
 signals:
     void getGeneration(int);

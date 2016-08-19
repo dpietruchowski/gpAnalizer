@@ -2,10 +2,15 @@
 #include <QApplication>
 #include <cstdio>
 #include <stdlib.h>
+#include <iostream>
+#include <opencv2/highgui/highgui.hpp>
+
+using namespace std;
+using namespace cv;
 
 int main(int argc, char *argv[])
 {
-    srand(time(NULL));
+//    srand(time(NULL));
 
     QApplication a(argc, argv);
     MainWindow w;

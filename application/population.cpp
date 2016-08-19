@@ -2,94 +2,84 @@
 
 using namespace std;
 
-population::population()
+Population::Population()
 {
-    this->counterTrees = 0;
+    counterTrees_ = 0;
 }
 
-population::population(int size, int treeDepth, int generationNumber)
+Population::Population(int size, int treeDepth, int generationNumber)
 {
-    this->counterTrees = 0;
+    counterTrees_ = 0;
     for(int i=0; i<size; i++)
     {
-        string id = 'p' + to_string(generationNumber) + 't' + to_string(counterTrees++);
-        individuals.push_back( tree_ptr(new tree(treeDepth, id)) );
+        individuals_.push_back( TreePtr(new Tree(treeDepth, counterTrees_++)) );
     }
 }
 
-population::~population()
+Population::~Population()
 {
 }
 
-void population::erase(int i)
+void Population::erase(int i)
 {
-    vector<tree_ptr>::iterator it = individuals.begin();
+    vector<TreePtr>::iterator it = individuals_.begin();
     for (int n = 0; n < i; n++)
         ++it;
-    individuals.erase(it);
+    individuals_.erase(it);
 }
 
-void population::create(int size, int treeDepth, int generationNumber)
+void Population::create(int size, int treeDepth, int generationNumber)
 {
-    this->counterTrees = 0;
+    counterTrees_ = 0;
     for(int i=0; i<size; i++)
     {
-        string id = 'p' + to_string(generationNumber) + 't' + to_string(counterTrees++);
-        individuals.push_back( tree_ptr(new tree(treeDepth, id)) );
+        individuals_.push_back( TreePtr(new Tree(treeDepth, counterTrees_++)) );
     }
 }
 
-void population::init(const functionSet &functions, const terminalSet &terminals)
+void Population::init(NodeGenerator& generator)
 {
-    int populationSize = this->getSize();
-    for (initializeIt=individuals.begin(); initializeIt<individuals.begin()+populationSize/2; ++initializeIt)
+    int populationSize = getSize();
+    for (initializeIt_ = individuals_.begin();
+         initializeIt_ < individuals_.begin()+populationSize/2;
+         ++initializeIt_)
     {
-       (*initializeIt)->initialize(FULL_INIT, functions, terminals);
+       (*initializeIt_)->initialize(FULL_INIT, generator);
     }
 
-    for (; initializeIt<individuals.end(); ++initializeIt)
+    for (; initializeIt_ < individuals_.end(); ++initializeIt_)
     {
-       (*initializeIt)->initialize(GROW_INIT, functions, terminals);
+       (*initializeIt_)->initialize(GROW_INIT, generator);
     }
 }
 
-tree* population::getIndividual(int i)
+Tree* Population::getIndividual(int i)
 {
-    return individuals[i].get();
+    return individuals_[i].get();
 }
 
-void population::addIndividual(tree_ptr newIndividual, int generationNumber)
+void Population::addIndividual(TreePtr newIndividual, int generationNumber)
 {
-    string id = 'p' + to_string(generationNumber) + 't' + to_string(counterTrees++);
-    newIndividual->setId(id);
-    individuals.push_back( move(newIndividual) );
+    individuals_.push_back( move(newIndividual) );
 }
 
-int population::getSize()
+int Population::getSize()
 {
-    return individuals.size();
+    return individuals_.size();
 }
 
-void population::swap(population* newPopulation)
+void Population::swap(Population* newPopulation)
 {
-    this->individuals.swap(newPopulation->individuals);
+    individuals_.swap(newPopulation->individuals_);
 }
 
-void population::clear()
+void Population::clear()
 {
-    individuals.clear();
-    this->counterTrees = 0;
+    individuals_.clear();
+    counterTrees_ = 0;
 }
 
-void population::show()
-{
-    for (vector<tree_ptr>::iterator it=individuals.begin(); it!=individuals.end(); ++it)
-    {
-        (*it)->show();
-    }
-}
-
-void population::savePopulation(int generationNumber, string katalog)
+void Population::savePopulation(int generationNumber, string katalog)
 {
     string command = "mkdir ";
     command += katalog + "/population";
@@ -97,14 +87,14 @@ void population::savePopulation(int generationNumber, string katalog)
     const char *cstr = command.c_str();
     system(cstr);
     int i = 0;
-    for(auto const &p: this->individuals)
+    for(auto const &p: individuals_)
     {
-        Mat result = p->run();
+        cv::Mat result = p->run();
         string folder = "images/population";
         string nr = to_string(generationNumber);
         string name = "individual";
         name = folder + nr + "/" + name + to_string(i) + ".png";
-        imwrite(name,result);
+        cv::imwrite(name,result);
         i++;
     }
 }
