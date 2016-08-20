@@ -31,6 +31,8 @@ private slots:
     void setOperationName(std::string operationName);
     void setBestProgram(bestIndividual best);
 
+    void on_inputImageButton_clicked();
+
 private:
     QImage cvMatToQImage(const cv::Mat &inMat);
     QPixmap cvMatToQPixmap(const cv::Mat &inMat);

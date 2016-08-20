@@ -53,3 +53,18 @@ void NodeId::fromString(const string &id)
     cloneNumber = stoi(sclone);
 }
 
+void NodeId::saveAttribute(tinyxml2::XMLElement *node) const
+{
+    node->SetAttribute("type", enumToString(type));
+    node->SetAttribute("number", number);
+    node->SetAttribute("cloneNumber", cloneNumber);
+}
+
+void NodeId::loadAttribute(const tinyxml2::XMLElement *node)
+{
+    const char* typeStr = node->Attribute("type");
+    type = enumFromString(string(typeStr));
+    number = node->IntAttribute("number");
+    cloneNumber = node->IntAttribute("cloneNumber");
+}
+

@@ -73,6 +73,20 @@ std::pair<FunctionId, FunctionPtr> FunctionSet::getRandomFunction(int argumentsN
     return conversion(it);
 }
 
+std::pair<FunctionId, FunctionPtr> FunctionSet::getFunction(string name) const
+{
+    Functions::const_iterator it = functions_.find(name);
+
+    if (it == functions_.end())
+    {
+        string exception = "Nie ma zadnej funkcji o takiej nazwie"
+                           "lub nie jest dodana";
+        throw exception;
+    }
+
+    return this->conversion(it);
+}
+
 void FunctionSet::addFunction(string name)
 {
     Functions::iterator it;

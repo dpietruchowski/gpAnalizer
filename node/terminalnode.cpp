@@ -18,6 +18,11 @@ NodePtr TerminalNode::create(unsigned int geneNumber)
     return NodePtr(new TerminalNode(id, terminals_.getTerminal()));
 }
 
+NodePtr TerminalNode::createFromXml(const tinyxml2::XMLElement *node)
+{
+    return NodePtr(new TerminalNode(node, terminals_.getTerminal()));
+}
+
 void TerminalNode::execute(const std::vector<cv::Mat> &, cv::Mat &dst) const
 {
     if(terminal_->empty())
@@ -30,6 +35,12 @@ void TerminalNode::execute(const std::vector<cv::Mat> &, cv::Mat &dst) const
 
 TerminalNode::TerminalNode(const NodeId &id, MatPtr terminal):
     Node(id, 0), terminal_(terminal)
+{
+
+}
+
+TerminalNode::TerminalNode(const tinyxml2::XMLElement *node, MatPtr terminal):
+    Node(node), terminal_(terminal)
 {
 }
 

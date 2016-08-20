@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <opencv2/core/core.hpp>
+#include <tinyxml2.h>
+
 #include "nodeid.h"
 
 class Node;
@@ -12,6 +14,7 @@ class Node
 {
 public:
     Node(const NodeId& id, int size);
+    Node(const tinyxml2::XMLElement* node);
     virtual ~Node() {}
     void addChild(NodePtr child);
     void setChild(int i, NodePtr child);
@@ -25,6 +28,7 @@ public:
     const NodeId &getId() const;
 
     std::string write() const;
+    tinyxml2::XMLElement* save(tinyxml2::XMLDocument& doc) const;
     NodePtr clone() const;
 
     virtual void execute(const std::vector<cv::Mat>& src, cv::Mat& dst) const = 0;
@@ -36,6 +40,10 @@ protected:
 private:
     virtual void writeNode(std::string& nodeString) const = 0;
     virtual NodePtr cloneNode() const = 0;
+    virtual void save(tinyxml2::XMLDocument& doc,
+                      tinyxml2::XMLElement* node) const = 0;
+    virtual void save(tinyxml2::XMLElement *node) const = 0;
+    void load(const tinyxml2::XMLElement *node);
 
 private:
     NodeId id_;

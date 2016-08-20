@@ -12,6 +12,7 @@ class FunctionNode : public Node
 public:
     static FunctionSet& getFunctionSet();
     static NodePtr create(unsigned int geneNumber);
+    static NodePtr createFromXml(const tinyxml2::XMLElement *node);
 
 public:
     void execute(const std::vector<cv::Mat>&, cv::Mat& dst) const;
@@ -19,11 +20,16 @@ public:
 
 private:
     FunctionNode(const NodeId& id, std::pair<FunctionId, FunctionPtr> p);
+    FunctionNode(const tinyxml2::XMLElement *node,
+                 std::pair<FunctionId, FunctionPtr> p);
     FunctionNode(const FunctionNode& rhs);
 
 private:
     virtual void writeNode(std::string& nodeString) const;
     virtual NodePtr cloneNode() const;
+    virtual void save(tinyxml2::XMLDocument& doc,
+                      tinyxml2::XMLElement *node) const;
+    virtual void save(tinyxml2::XMLElement *node) const;
 
 private:
     FunctionPtr function_;

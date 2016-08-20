@@ -21,6 +21,7 @@ public:
     ~FunctionSet();
     std::pair<FunctionId,FunctionPtr> getRandomFunction() const;
     std::pair<FunctionId,FunctionPtr> getRandomFunction(int argumentsNumber) const;
+    std::pair<FunctionId,FunctionPtr> getFunction(std::string name) const;
     void addFunction(std::string name);
     void deleteFunction(std::string name);
     void addAllFunctions();

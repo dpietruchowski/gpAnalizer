@@ -108,3 +108,8 @@ QPixmap MainWindow::cvMatToQPixmap(const cv::Mat &inMat)
 {
   return QPixmap::fromImage( cvMatToQImage( inMat ) );
 }
+
+void MainWindow::on_inputImageButton_clicked()
+{
+
+}

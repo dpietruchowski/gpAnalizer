@@ -5,10 +5,17 @@
 #include <limits>
 
 using namespace std;
+using namespace tinyxml2;
 
 Node::Node(const NodeId& id, int size):
     id_(id), size_(size), nClones_(new int(0))
 {
+}
+
+Node::Node(const XMLElement *node):
+    nClones_(new int(0))
+{
+    load(node);
 }
 
 void Node::addChild(NodePtr child)
@@ -96,6 +103,16 @@ string Node::write() const
     return nodeString;
 }
 
+XMLElement *Node::save(XMLDocument &doc) const
+{
+    XMLElement* node = doc.NewElement("Node");
+    id_.saveAttribute(node);
+    node->SetAttribute("size", size_);
+
+    save(node);
+    return node;
+}
+
 NodePtr Node::clone() const
 {
     return cloneNode();
@@ -110,4 +127,10 @@ Node::Node(const Node &rhs):
     id_ = rhs.id_;
 
     id_.cloneNumber = *nClones_;
+}
+
+void Node::load(const XMLElement *node)
+{
+    id_.loadAttribute(node);
+    size_ = node->IntAttribute("size");
 }

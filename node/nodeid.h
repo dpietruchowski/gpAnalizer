@@ -8,6 +8,7 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+#include <tinyxml2.h>
 
 #define X_DEFINE_ENUM_TOSTRING_CASE(r, data, elem)    \
 case elem : return BOOST_PP_STRINGIZE(elem);
@@ -30,7 +31,8 @@ inline  const char* enumToString(name v)                                       \
     }                                                                     \
 }
 
-DEFINE_ENUM(NodeType,(NULL_NODE)(TERMINAL_NODE)(FUNCTION_NODE)(MORPHO_NODE))
+DEFINE_ENUM(NodeType,(NULL_NODE)(TERMINAL_NODE)(FUNCTION_NODE)            \
+            (MORPHO_NODE)(THRESH_NODE))
 
 template <typename T>
 std::string to_string_with_precision(const T a_value, const int n = 6)
@@ -45,7 +47,8 @@ inline NodeType enumFromString(const std::string& enm)
     if(enm == "NULL_NODE") return NULL_NODE;
     if(enm == "TERMINAL_NODE") return TERMINAL_NODE;
     if(enm == "FUNCTION_NODE") return FUNCTION_NODE;                   \
-    if(enm == "MORPHO_NODE") return MORPHO_NODE;
+    if(enm == "MORPHO_NODE") return MORPHO_NODE;                 \
+    if(enm == "THRESH_NODE") return THRESH_NODE;
 
     throw std::string("Wrong enum");
 }
@@ -61,6 +64,8 @@ struct NodeId
     bool operator ==(const NodeId& rhs) const;
     std::string toString() const;
     void fromString(const std::string& id);
+    void saveAttribute(tinyxml2::XMLElement *node) const;
+    void loadAttribute(const tinyxml2::XMLElement *node);
 };
 
 #endif // NODEID_H

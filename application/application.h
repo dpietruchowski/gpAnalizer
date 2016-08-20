@@ -104,6 +104,7 @@ public:
     void evolution();
     TreePtr createNewIndividual();
     void saveBest(std::string &program);
+    void load(std::string &name);
     void checkIfBetterSolution();
 public:
     /*

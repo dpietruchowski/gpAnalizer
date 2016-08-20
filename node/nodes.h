@@ -8,6 +8,7 @@
 #include "functionset.h"
 #include "functionnode.h"
 #include "morphonode.h"
+#include "threshnode.h"
 
 #endif // NODES_H
 

@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace tinyxml2;
 
 int MorphoNode::morphologyOperation(const std::vector<cv::Mat> &src, cv::Mat &dst,
                                     const MorphoParameters& param,
@@ -37,7 +38,19 @@ NodePtr MorphoNode::create(unsigned int geneNumber)
     NodeId id = {MORPHO_NODE, geneNumber, 0};
     MorphoElement element = MorphoElement::getRandom();
     MorphoParameters param = MorphoParameters::getRandom();
+
     return NodePtr( new MorphoNode(id, MorphoNode::morphologyOperation, param,
+                                   element) );
+}
+
+NodePtr MorphoNode::createFromXml(const XMLElement *node)
+{
+    MorphoElement element;
+    MorphoParameters param;
+    element.loadAttribute(node);
+    param.loadAttribute(node);
+
+    return NodePtr( new MorphoNode(node, MorphoNode::morphologyOperation, param,
                                    element) );
 }
 
@@ -55,6 +68,15 @@ void MorphoNode::mutate()
 MorphoNode::MorphoNode(const NodeId &id, MorphoNode::MorphoPtr morphoOperation,
                        const MorphoParameters & param, const MorphoElement &element):
     Node(id, 1), morphoOperation_(morphoOperation), parameters_(param),
+    structElement_(element)
+{
+}
+
+MorphoNode::MorphoNode(const XMLElement *node,
+                       MorphoNode::MorphoPtr morphoOperation,
+                       const MorphoParameters &param,
+                       const MorphoElement &element):
+    Node(node), morphoOperation_(morphoOperation), parameters_(param),
     structElement_(element)
 {
 }
@@ -79,6 +101,21 @@ NodePtr MorphoNode::cloneNode() const
 {
     NodePtr cloned( new MorphoNode(*this) );
     return cloned;
+}
+
+void MorphoNode::save(XMLDocument &doc, XMLElement *node) const
+{
+    XMLElement *morphoParam = parameters_.save(doc);
+    node->InsertEndChild(morphoParam);
+
+    XMLElement *element = structElement_.save(doc);
+    node->InsertEndChild(element);
+}
+
+void MorphoNode::save(XMLElement *node) const
+{
+    parameters_.saveAttribute(node);
+    structElement_.saveAttribute(node);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +144,7 @@ std::string MorphoParameters::typeToString() const
     }
 }
 
-int MorphoParameters::typeFromString(std::string &type) const
+int MorphoParameters::typeFromString(const std::string &type) const
 {
     if(type == "Erode") return cv::MORPH_ERODE;
     if(type == "Dilate") return cv::MORPH_DILATE;
@@ -120,18 +157,6 @@ int MorphoParameters::typeFromString(std::string &type) const
 
     throw "MorphoParameters::typeFromString: Zly parametr";
 }
-
-//std::string MorphoParameters::shapeToString() const
-//{
-//    switch(morphShape)
-//    {
-//    case cv::MORPH_RECT: return "Rect";
-//    case cv::MORPH_ELLIPSE: return "Ellipse";
-//    case cv::MORPH_CROSS: return "Cross";
-//    default:
-//        return "Undefined";
-//    }
-//}
 
 std::string MorphoParameters::toString() const
 {
@@ -155,6 +180,27 @@ void MorphoParameters::fromString(const std::string & param)
     iterations = stoi(iter);
 }
 
+XMLElement *MorphoParameters::save(XMLDocument &doc) const
+{
+    XMLElement *param = doc.NewElement("MorphoParam");
+    saveAttribute(param);
+
+    return param;
+}
+
+void MorphoParameters::saveAttribute(XMLElement *node) const
+{
+    node->SetAttribute("morphType", typeToString().c_str());
+    node->SetAttribute("iterations", iterations);
+}
+
+void MorphoParameters::loadAttribute(const XMLElement *node)
+{
+    const char* type = node->Attribute("morphType");
+    morphType = typeFromString(string(type));
+    iterations = node->IntAttribute("iterations");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////// MorphologyElement //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -163,14 +209,36 @@ MorphoElement MorphoElement::getRandom()
     MorphoElement element;
     int width = 1 + std::rand() % MorphoParameters::MAX_WIDTH;
     int height = 1 + std::rand() % MorphoParameters::MAX_HEIGHT;
+    element.morphShape = rand() % 3;
 //    element.element = cv::Mat(1 + std::rand() % MorphoParameters::MAX_WIDTH,
 //                    1 + std::rand() % MorphoParameters::MAX_HEIGHT,
 //                    CV_8U);
 //    cv::randu(element.element, cv::Scalar(0), cv::Scalar(2));
-    element.element = cv::getStructuringElement(rand()%3,
+    element.element = cv::getStructuringElement(element.morphShape,
                                                 cv::Size(width, height));
 
     return element;
+}
+
+string MorphoElement::shapeToString() const
+{
+    switch(morphShape)
+    {
+    case cv::MORPH_RECT: return "Rect";
+    case cv::MORPH_ELLIPSE: return "Ellipse";
+    case cv::MORPH_CROSS: return "Cross";
+    default:
+        return "Undefined";
+    }
+}
+
+int MorphoElement::shapeFromString(const string &shape)
+{
+    if(shape == "Rect") return cv::MORPH_RECT;
+    if(shape == "Ellipse") return cv::MORPH_ELLIPSE;
+    if(shape == "Cross") return cv::MORPH_CROSS;
+
+    throw "MorphoElement::shapeFromString: Zly parametr";
 }
 
 string MorphoElement::toString() const
@@ -191,5 +259,30 @@ void MorphoElement::fromString(const string &selement, int nRows, int nCols)
     int k = 0;
     for(int i=0; i<element.rows; ++i)
          for(int j=0; j<element.cols; ++j)
-              element.at<unsigned char>(i, j) = vv[k++];
+             element.at<unsigned char>(i, j) = vv[k++];
+}
+
+XMLElement *MorphoElement::save(XMLDocument &doc) const
+{
+    XMLElement *morphoElement = doc.NewElement("MorphoElement");
+    saveAttribute(morphoElement);
+
+    return morphoElement;
+}
+
+void MorphoElement::saveAttribute(XMLElement *node) const
+{
+    node->SetAttribute("width", element.cols);
+    node->SetAttribute("height", element.rows);
+    node->SetAttribute("shape", shapeToString().c_str());
+}
+
+void MorphoElement::loadAttribute(const XMLElement *node)
+{
+    int width = node->IntAttribute("width");
+    int height = node->IntAttribute("height");
+    const char* shape = node->Attribute("shape");
+    morphShape = shapeFromString(string(shape));
+
+    element = cv::getStructuringElement(morphShape, cv::Size(width, height));
 }

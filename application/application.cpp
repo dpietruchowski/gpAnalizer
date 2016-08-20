@@ -3,13 +3,15 @@
 #include <stdlib.h>
 #include <QtCore>
 #include <iostream>
+#include <tinyxml2.h>
 
 using namespace std;
 using namespace cv;
+using namespace tinyxml2;
 
 Application::Application()
 {
-    string katalog = "rejestracja";
+    string katalog = "sam";
 
     string command = "rm -r  ";
     command += katalog;
@@ -28,27 +30,30 @@ Application::Application()
     this->best.programResult = 10000000;
 
     this->generationNumber = 0;
-    this->populationSize = 200;
-    this->treeDepth = 8;
+    this->populationSize = 250;
+    this->treeDepth = 9;
     this->hoistMutationProbability = 0.01;
     this->nodeMutationProbability = 0.07;
     this->collapseMutationProbability = 0.01;
-    this->subtreeMutationProbability = 0.1;
-    this->subtreeCrossoverProbability = 0.7;
+    this->subtreeMutationProbability = 0.15;
+    this->subtreeCrossoverProbability = 0.65;
     this->arity2CrossoverProbability = 0.01;
     this->selectType = ROULETTE_SELECTION;
-    this->fitType = HAMMING;
+    this->fitType = HAUSDORFF_CANNY;
     this->tournamentSize = 40;
     this->parentsSize = 40;
-    setImages("rejestracja.png", "rejestracja_ref.png");
+    string inputImg = katalog + ".png" ;
+    string refImg = katalog + "_ref.png";
+    setImages(inputImg, refImg);
 
     FunctionNode::getFunctionSet().addFunction("bitwiseNot");
-    //FunctionNode::getFunctionSet().addFunction("bitwiseXor");
-    //FunctionNode::getFunctionSet().addFunction("bitwiseOr");
-    //FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
+    FunctionNode::getFunctionSet().addFunction("bitwiseXor");
+    FunctionNode::getFunctionSet().addFunction("bitwiseOr");
+    FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
 
-    generator.registerObject(0.35, FunctionNode::create);
-    generator.registerObject(0.65, MorphoNode::create);
+    generator.registerObject(0.25, FunctionNode::create);
+    generator.registerObject(0.6, MorphoNode::create);
+    generator.registerObject(0.15, ThreshNode::create);
 }
 
 void Application::setKatalog(string katalog)
@@ -224,10 +229,10 @@ TreePtr Application::nodeMutation(Tree *parent)
 TreePtr Application::hoistMutation(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
-    while(parent->getNode(mutationPoint)->getId().type == TERMINAL_NODE)
-        mutationPoint = getRandomMutationPoint(parent);
         //Offspring is subtree with randomly picked node
     TreePtr offspring = parent->cloneSubtree(mutationPoint, 0);
+    if(offspring->getRoot()->getId().type == TERMINAL_NODE)
+        offspring = move(parent->clone(0));
 
     return move(offspring);
 }
@@ -542,12 +547,21 @@ void Application::saveBest(string &program)
     string nr = to_string(this->generationNumber);
     name = folder + name + nr + "_" + to_string(measure) + ".png";
     imwrite(name,result);
-        //write best program
+        //save xml file
+    XMLDocument doc;
+    XMLElement *root = it->second->save(doc);
+    doc.InsertFirstChild(root);
+
     name = "/program";
-    name = folder + name + nr + "_" + to_string(measure) + ".txt";
-    ofstream plik(name);
-    plik << program << endl;
-    plik.close();
+    name = folder + name + nr + "_" + to_string(measure) + ".xml";
+    XMLError eResult = doc.SaveFile(name.c_str());
+
+        //write best program
+//    name = "/program";
+//    name = folder + name + nr + "_" + to_string(measure) + ".txt";
+//    ofstream plik(name);
+//    plik << program << endl;
+//    plik.close();
 }
 
 void Application::stop()
@@ -595,7 +609,7 @@ void Application::run()
             break;
         if ( this->best.programResult < 500 )
         {
-            this->fitType = HAUSDORFF_CANNY;
+            this->fitType = HAMMING;
             this->best.programResult = 10000000;
         }
 

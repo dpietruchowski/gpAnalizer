@@ -2,6 +2,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace tinyxml2;
 
 Tree::Tree(int depth, int id):
     id_(id), depth_(depth), counterNodes_(0), nClones(new int(0))
@@ -142,6 +143,33 @@ string Tree::write() const
     treeString += writeSubtree(root_.get(), arrows);
 
     return treeString;
+}
+
+XMLElement *Tree::save(XMLDocument &doc) const
+{
+    XMLElement* tree = doc.NewElement("Tree");
+    tree->SetAttribute("id", id_);
+    tree->SetAttribute("depth", depth_);
+    tree->SetAttribute("size", getSize());
+
+    XMLElement *root = root_->save(doc);
+    tree->InsertFirstChild(root);
+
+    saveSubtree(doc, root_.get(), root);
+
+    return tree;
+}
+
+void Tree::parse(XMLElement *tree,
+                 Parser& parser)
+{
+    id_ = tree->IntAttribute("id");
+    depth_ = tree->IntAttribute("depth");
+
+    XMLElement *root = tree->FirstChildElement();
+    root_ = move( parser.parseNode(root) );
+
+    parseSubtree(root_.get(), root, parser);
 }
 
 int Tree::getSubtreeDepth(Node* subroot, int depth) const
@@ -292,6 +320,32 @@ string Tree::writeSubtree(Node *subroot, string arrows) const
     }
 
     return subtreeString;
+}
+
+void Tree::saveSubtree(XMLDocument &doc, Node *subroot,
+                       XMLElement *subrootXml) const
+{
+    for(int i = 0; i < subroot->getSize(); ++i)
+    {
+        Node *child = subroot->getChild(i);
+        XMLElement *childXml = child->save(doc);
+        subrootXml->InsertEndChild( childXml );
+        saveSubtree(doc, child, childXml);
+    }
+}
+
+void Tree::parseSubtree(Node *subroot, XMLElement *subrootXml, Parser &parser)
+{
+    XMLElement *childXml = subrootXml->FirstChildElement();
+    for(int i = 0; i < subroot->getSize(); ++i)
+    {
+        NodePtr child = parser.parseNode(childXml);
+        Node *node = child.get();
+        subroot->addChild( move(child) );
+        parseSubtree(node, childXml, parser);
+
+        childXml = childXml->NextSiblingElement();
+    }
 }
 
 void Tree::clone(const Tree &rhs)

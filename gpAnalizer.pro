@@ -14,6 +14,7 @@ TARGET = gpAnalizer
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11
 
+LIBS += -ltinyxml2
 LIBS += -lopencv_highgui -lopencv_core -lopencv_imgcodecs -lopencv_imgproc
 LIBS += -L"/usr/lib/x86_64-linux-gnu" -lboost_system
 
@@ -31,7 +32,8 @@ SOURCES += main.cpp\
     application/tree.cpp \
     application/population.cpp \
     application/application.cpp \
-    #node/threshnode.cpp
+    node/threshnode.cpp \
+    parser/parser.cpp \
 
 HEADERS  += mainwindow.h \
     node/nodes.h \
@@ -47,6 +49,15 @@ HEADERS  += mainwindow.h \
     application/tree.h \
     application/population.h \
     application/application.h \
-    #node/threshnode.h
+    node/threshnode.h \
+    parser/parser.h \
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    settings.ui
+
+    prog.path = $$_PRO_FILE_PWD_/../GP
+    prog.files = $$OUT_PWD/gpAnalizer
+INSTALLS += prog
+
+message($$OUT_PWD)
+message($$_PRO_FILE_PWD_)

@@ -3,6 +3,8 @@
 
 #include "node/node.h"
 #include "generator/nodegenerator.h"
+#include "parser/parser.h"
+#include <tinyxml2.h>
 
 class Tree;
 typedef std::unique_ptr<Tree> TreePtr;
@@ -39,6 +41,8 @@ public:
     int getDepth() const;
     int getSubtreeDepth(int subrootI) const;
     std::string write() const;
+    tinyxml2::XMLElement* save(tinyxml2::XMLDocument& doc) const;
+    void parse(tinyxml2::XMLElement* tree, Parser& parser);
 
     Node* getRoot() const;
     Node* getNode(int i) const;
@@ -59,6 +63,10 @@ private:
     NodeParent getNodeParent(Node* subroot, int n) const;
     void setSubtree(Node* subroot, int n, NodePtr newNode);
     std::string writeSubtree(Node *subroot, std::string arrows) const;
+    void saveSubtree(tinyxml2::XMLDocument &doc, Node *subroot,
+                     tinyxml2::XMLElement* subrootXml) const;
+    void parseSubtree(Node* subroot, tinyxml2::XMLElement* subrootXml,
+                      Parser& parser);
 
     ////////////////////////////////////////////////////////////////////////////
     //////////////////////////// Clone functions ///////////////////////////////
