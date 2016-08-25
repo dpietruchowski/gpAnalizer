@@ -2,103 +2,129 @@
 #define APPLICATION_H
 
 #include "population.h"
-#include <map>
+#include "selection/selection.h"
+#include "operation/geneticoperation_h.h"
 #include <vector>
-#include <fstream>
 #include <QtCore>
 
 typedef std::pair<double,Tree*> double_tree;
 
-struct bestIndividual
+struct BestIndividual
 {
     int generationNumber;
     int individualNumber;
     int programResult;
     cv::Mat image;
+    BestIndividual():
+        generationNumber(0), individualNumber(0), programResult(1000000)
+    {}
+
+};
+Q_DECLARE_METATYPE(BestIndividual)
+
+struct GeneticParameters
+{
+    int populationSize;
+    int treeDepth;
+    int tournamentSize;
+    SelectionType selectType;
+    FitnessType fitType;
+    GeneticParameters(int populationSize, int treeDepth, int tournamentSize,
+                      SelectionType selectionType, FitnessType fitnessType):
+        populationSize(populationSize), treeDepth(treeDepth),
+        tournamentSize(tournamentSize), selectType(selectionType),
+        fitType(fitnessType) {}
+    GeneticParameters():
+        populationSize(0), treeDepth(0), tournamentSize(0),
+        selectType(FITNESS_ROULETTESELECTION), fitType(HAMMING) {}
+    GeneticParameters(const GeneticParameters&) = default;
 };
 
-enum SelectionType
+struct GeneticNodeProbabilities
 {
-    SELECTION,
-    RANK_SELECTION,
-    TOURNAMENT_SELECTION,
-    ROULETTE_SELECTION
+    double function;
+    double morpho;
+    double thresh;
+    GeneticNodeProbabilities(const GeneticNodeProbabilities&) = default;
+    GeneticNodeProbabilities():
+        function(0), morpho(0), thresh(0) {}
+    GeneticNodeProbabilities(double function, double morpho, double thresh):
+        function(function), morpho(morpho), thresh(thresh) {}
+    double sum() const
+    { return function + morpho + thresh; }
 };
 
-enum MutationType
+struct GeneticOperationProbabilities
 {
-    SUBTREE_MUTATION,
-    NODE_MUTATION,
-    HOIST_MUTATION,
-    COLLAPSE_MUTATION
+    double subtreeMutation;
+    double nodeMutation;
+    double hoistMutation;
+    double collapseMutation;
+    double subtreeCrossover;
+    double copy;
+
+    GeneticOperationProbabilities(const GeneticOperationProbabilities&) = default;
+    GeneticOperationProbabilities():
+        subtreeMutation(0), nodeMutation(0), hoistMutation(0),
+        collapseMutation(0), subtreeCrossover(0),
+        copy(0) {}
+    GeneticOperationProbabilities(int subtree, int node, int hoist,
+                                  int collapse, int subtreeCrossover, int copy):
+        subtreeMutation(subtree), nodeMutation(node), hoistMutation(hoist),
+        collapseMutation(collapse), subtreeCrossover(subtreeCrossover),
+        copy(copy) {}
+    double sum() const
+    { return subtreeMutation + nodeMutation + hoistMutation + collapseMutation +
+                subtreeCrossover + copy; }
 };
 
-enum CrossoverType
+struct StopCriteriumParameters
 {
-    SUBTREE_CROSSOVER,
-    ARITY2_CROSSOVER
+    int nGenerations;
+    int minResult;
+    StopCriteriumParameters(const StopCriteriumParameters&) = default;
+    StopCriteriumParameters(int nGenerations, int minResult):
+        nGenerations(nGenerations), minResult(minResult) {}
+    StopCriteriumParameters():
+        nGenerations(0), minResult(0) {}
 };
 
-enum FitnessType
-{
-    HAUSDORFF_SMALL,
-    HAUSDORFF_CANNY,
-    HAMMING
-};
+
 
 class Application: public QThread
 {
     Q_OBJECT
 
 private:
-    std::string katalog;
-    bool isStopped;
+    std::string katalog_;
+    bool isStopped_;
 
-    Population actualPopulation;
-    Population newPopulation;
-    int generationNumber;
-    /*
-     * Program parameters
-     */
-    int maxGenerationNumber;
-    int minResult;
-    /*
-     * Genetic parameters
-     */
-    cv::Mat referenceImage;
-    cv::Mat inputImage;
-    int populationSize;
-    int treeDepth;
-    double hoistMutationProbability;
-    double nodeMutationProbability;
-    double collapseMutationProbability;
-    double subtreeMutationProbability;
-    double subtreeCrossoverProbability;
-    double arity2CrossoverProbability;
-    int tournamentSize;
-    int parentsSize;
-    SelectionType selectType;
-    FitnessType fitType;
-    NodeGenerator generator;
+    Population actualPopulation_;
+    Population newPopulation_;
+    int generationNumber_;
+
+    StopCriteriumParameters stopParam_;
+
+    cv::Mat referenceImage_;
+    cv::Mat inputImage_;
+    GeneticParameters geneticParam_;
+    Selection *selection_;
+    NodeGenerator generator_;
+    GeneticOperationGenerator operationGenerator_;
+
     /*
      * Best program result in GP
      */
-    bestIndividual best;
-    TreePtr bestProgram;
+    BestIndividual best_;
+    TreePtr bestProgram_;
 public:
-        //the less, the better fit individual
-    std::map<int,Tree*> sortedIndividuals;
-        //the less, the better fit individual
-    std::map<int,Tree*> parents;
-        //the more, the better fit individual
-    std::vector<double_tree> normalizedIndividuals;
-        //the less, the better fit individual
-    std::vector<double_tree> standardizedIndividuals;
     cv::Mat bestIndividualOutput;
 public:
     Application();
-public:
-    int fitnessMeasure(Tree* individual);
+    Application(const Application& rhs);
+    Application& operator =(const Application& rhs);
+    void swap(Application& rhs);
+    ~Application();
 public:
     void init();
     void evolution();
@@ -107,104 +133,33 @@ public:
     void load(std::string &name);
     void checkIfBetterSolution();
 public:
-    /*
-     * Fitness functions
-     */
-    int distance(const std::vector<cv::Point> & a,
-                 const std::vector<cv::Point> & b);
-    int distanceHausdorff(const std::vector<cv::Point> & a,
-                          const std::vector<cv::Point> & b);
-    int fitnessHausdorffCanny(const cv::Mat& A, const cv::Mat& B);
-    int fitnessHausdorffSmall(const cv::Mat& A, const cv::Mat& B);
-    int fitnessHamming(const cv::Mat& A, const cv::Mat& B);
-    /*!
-     * \brief assessIndividuals Terminate all individuals
-     * and sort them by fitness function.
-     * Individuals are sorted in sortedIndividuals map.
-     */
     void assessIndividuals();
-    /*!
-     * \brief normalizeFitness for all individuals normalize fit.
-     * Sum of all fit is equal 1.
-     * The higher fit, the better individual.
-     * Individuals are normalized in normalizedIndividuals vector.
-     */
-    void normalizeFitness();
-    /*!
-     * \brief standardizeFitness for all individuals standardize fit.
-     * Number between 0 - 1;
-     * The lower fit, the better individual.
-     * Individuals are standardized in standardizedIndividuals vector.
-     */
-    void standardizeFitness();
-    void pickParents();
-    /*
-     * Mutation functions
-     */
-    /*!
-     * \brief subtreeMutation The offspring is copy of parent
-     * with randomly generated subtree instead of subtree with root,
-     * which is randomly picked node.
-     * \param parent Offspring parent.
-     * \return Offspring.
-     */
-    TreePtr subtreeMutation(Tree* parent);
-    /*!
-     * \brief hoistMutation Offspring is copy of
-     * randomly picked subtree of parent.
-     * \param parent Offspring parent.
-     * \return Offspring.
-     */
-    TreePtr hoistMutation(Tree* parent);
-    /*!
-     * \brief nodeMutation Offspring is copy of parent with
-     * randomly changed one node.
-     * \param parent Offspring parent.
-     * \return Offspring.
-     */
-    TreePtr nodeMutation(Tree* parent);
-    /*!
-     * \brief collapseMutation Offpring is copy of parent.
-     * One of the node is changed to terminal node.
-     * \param parent Offspring parent.
-     * \return Offspring.
-     */
-    TreePtr collapseMutation(Tree* parent);
-    /*
-     * Crossover functions
-     */
-    TreePtr subtreeCrossover(Tree* parent1, Tree* parent2);
-    TreePtr arity2Crossover(Tree* parent1, Tree* parent2);
-    /*
-     * Selection functions
-     */
     Tree* selectIndividual();
-    Tree* selectIndividualByFitenss();
-    Tree* selectIndividualByTournament(int tournamentSize);
-    Tree* selectIndividualFromParents();
 
 public:
     void run();
     void stop();
-    void setMutationParameters(double hoistMutationProbability,
-                               double nodeMutationProbability,
-                               double collapseMutationProbability,
-                               double subtreeMutationProbability);
-    void setCrossoverParameters(double subtreeCrossoverProbability,
-                                double arity2CrossoverProbability);
-    void setParameters(int populationSize, SelectionType selectType, FitnessType fitType);
-    void setFunctionSet(std::vector<std::string> functionSet);
-    void setImages(std::string inputImage, std::string referenceImage);
+    void setGeneticOperationProbabilities(
+            const GeneticOperationProbabilities& probabilities);
+    void setGeneticParameters(const GeneticParameters& param);
+    void setStopCriterium(const StopCriteriumParameters& param);
+    void setNodeProbabilities(const GeneticNodeProbabilities& probabilities);
+    void setInputImage(const cv::Mat& inputImage);
+    void setReferenceImage(const cv::Mat& referenceImage);
     void setKatalog(std::string katalog);
+    void clearKatalog();
 
 private:
     int getRandomMutationPoint(Tree* parent);
+private slots:
+    void getAssessedNumber(int number);
 
 signals:
+    void getAssessed(int);
     void getGeneration(int);
     void getIndividual(int);
     void getOperation(std::string);
-    void newBestProgram(bestIndividual);
+    void newBestProgram(BestIndividual);
 
 };
 

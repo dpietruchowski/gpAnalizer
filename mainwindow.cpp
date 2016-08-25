@@ -1,60 +1,75 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "ui/settings.h"
+
+#include <string>
+#include <iostream>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <opencv2/highgui/highgui.hpp>
+
+using namespace std;
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent), ui_(new Ui::MainWindow),
+    isInputImage_(false), isReferenceImage_(false), isOptionSetup_(false)
 {
-    ui->setupUi(this);
-    scene = new QGraphicsScene();
-    ui->bestImageView->setScene(scene);
-    item = new QGraphicsPixmapItem();
-    scene->addItem(item);
+    ui_->setupUi(this);
+    scene_ = new QGraphicsScene();
+    ui_->bestImageView->setScene(scene_);
+    item_ = new QGraphicsPixmapItem();
+    scene_->addItem(item_);
 
-    QObject::connect(ui->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
-    QObject::connect(ui->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
+    QObject::connect(ui_->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
+    QObject::connect(ui_->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
+    buttonsEnabledStart();
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+    delete ui_;
+    delete scene_;
 }
 
 void MainWindow::applicationStart()
 {
-    app.start();
-    QObject::disconnect(ui->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
+    app_.start();
+    //QObject::disconnect(ui_->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
 
-    QObject::connect(&app, SIGNAL(getGeneration(int)), ui->generationNumber, SLOT(display(int)));
-    QObject::connect(&app, SIGNAL(getIndividual(int)), ui->individualNumber, SLOT(display(int)));
+    QObject::connect(&app_, SIGNAL(getGeneration(int)), ui_->generationNumber, SLOT(display(int)));
+    QObject::connect(&app_, SIGNAL(getAssessed(int)), ui_->individualNumber, SLOT(display(int)));
     qRegisterMetaType<std::string>("std::string");
-    QObject::connect(&app, SIGNAL(getOperation(std::string)), this, SLOT(setOperationName(std::string)));
-    qRegisterMetaType<bestIndividual>("bestIndividual");
-    QObject::connect(&app, SIGNAL(newBestProgram(bestIndividual)), this, SLOT(setBestProgram(bestIndividual)));
+    QObject::connect(&app_, SIGNAL(getOperation(std::string)), this, SLOT(setOperationName(std::string)));
+    qRegisterMetaType<BestIndividual>("bestIndividual");
+    QObject::connect(&app_, SIGNAL(newBestProgram(BestIndividual)), this, SLOT(setBestProgram(BestIndividual)));
+
+    buttonsEnabledStop();
 }
 
 void MainWindow::applicationStop()
 {
-    app.stop();
-    QObject::disconnect(ui->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
+//   app_.stop();
+    app_.terminate();
+    //QObject::disconnect(ui_->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
+    buttonsEnabledReset();
 }
 
 void MainWindow::setOperationName(std::string operationName)
 {
-    ui->operationNameLabel->setText(QString::fromStdString(operationName));
+    ui_->operationNameLabel->setText(QString::fromStdString(operationName));
 
 }
 
-void MainWindow::setBestProgram(bestIndividual best)
+void MainWindow::setBestProgram(BestIndividual best)
 {
-    ui->resultNumberBest->display(best.programResult);
-    ui->generationNumberBest->display(best.generationNumber);
-    ui->individualNumberBest->display(best.individualNumber);
+    ui_->resultNumberBest->display(best.programResult);
+    ui_->generationNumberBest->display(best.generationNumber);
+    ui_->individualNumberBest->display(best.individualNumber);
 
-    item->setPixmap(cvMatToQPixmap(best.image));
+    item_->setPixmap(cvMatToQPixmap(best.image));
     //scene->addItem(item);
-    ui->bestImageView->fitInView(item);
-    ui->bestImageView->show();
+    ui_->bestImageView->fitInView(item_);
+    ui_->bestImageView->show();
 }
 
 QImage  MainWindow::cvMatToQImage(const cv::Mat &inMat)
@@ -106,10 +121,145 @@ QImage  MainWindow::cvMatToQImage(const cv::Mat &inMat)
 
 QPixmap MainWindow::cvMatToQPixmap(const cv::Mat &inMat)
 {
-  return QPixmap::fromImage( cvMatToQImage( inMat ) );
+    return QPixmap::fromImage( cvMatToQImage( inMat ) );
 }
 
 void MainWindow::on_inputImageButton_clicked()
 {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                    QDir::currentPath(),
+                                                    tr("Images (*.png *.jpg)"));
+    if(fileName.isEmpty() == true)
+        return;
 
+    string inputName = fileName.toStdString();
+    cv::Mat inputImage = cv::imread(inputName, 0);
+    app_.setInputImage(inputImage);
+
+    QGraphicsScene *scene = new QGraphicsScene();
+    ui_->inputImageView->setScene(scene);
+    QGraphicsPixmapItem *item = new QGraphicsPixmapItem();
+    scene->addItem(item);
+    item->setPixmap(cvMatToQPixmap(inputImage));
+    ui_->inputImageView->fitInView(item);
+    ui_->inputImageView->show();
+
+    isInputImage_ = true;
+    buttonsEnabledStart();
+}
+
+void MainWindow::on_referenceImageButton_clicked()
+{
+
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                    QDir::currentPath(),
+                                                    tr("Images (*.png *.jpg)"));
+
+    if(fileName.isEmpty() == true)
+        return;
+
+    string referenceName = fileName.toStdString();
+    cv::Mat referenceImage = cv::imread(referenceName, 0);
+    app_.setReferenceImage(referenceImage);
+
+    QGraphicsScene *scene = new QGraphicsScene();
+    ui_->referenceImageView->setScene(scene);
+    QGraphicsPixmapItem *item = new QGraphicsPixmapItem();
+    scene->addItem(item);
+    item->setPixmap(cvMatToQPixmap(referenceImage));
+    ui_->referenceImageView->fitInView(item);
+    ui_->referenceImageView->show();
+
+    isReferenceImage_ = true;
+    buttonsEnabledStart();
+}
+
+void MainWindow::on_saveFolderButton_clicked()
+{
+    QDir saveDir = QFileDialog::getExistingDirectory(this, tr("Open File"),
+                                                QDir::currentPath());
+    if(saveDir == QDir::currentPath())
+        return;
+    QString saveString = saveDir.path();
+    if(saveString == ".")
+        return;
+
+    while(saveDir.entryInfoList(QDir::NoDotAndDotDot|
+                                QDir::AllEntries).count() != 0)
+    {
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "Ostrzezenie",
+                                    "Zawartosc folderu bedzie usunieta\n"
+                                    "Czy chcesz kontynuowac?",
+                                    QMessageBox::Yes|QMessageBox::No);
+
+        if(reply == QMessageBox::No)
+        {
+            saveDir = QFileDialog::getExistingDirectory(
+                            this, tr("Open File"), QDir::currentPath());
+            if(saveDir == QDir::currentPath())
+                return;
+            saveString = saveDir.path();
+            if(saveString == "")
+                return;
+        }
+        else break;
+
+    }
+
+    string savePath = saveString.toStdString();
+
+    app_.setKatalog(savePath);
+    isOptionSetup_ = true;
+    buttonsEnabledStart();
+}
+
+void MainWindow::on_optionsButton_clicked()
+{
+    Setting setting;/*
+    setting.geneticNodeProbabilities =
+            new GeneticNodeProbabilities(app_.get)*/
+    Settings *settings = new Settings(setting, this);
+}
+
+void MainWindow::on_resetButton_clicked()
+{
+    app_ = app_;
+
+    buttonsEnabledStart();
+}
+
+void MainWindow::buttonsEnabledStart()
+{
+    ui_->stopButton->setEnabled(false);
+    ui_->startButton->setEnabled(isInputImage_
+                                 & isReferenceImage_
+                                 & isOptionSetup_);
+    ui_->inputImageButton->setEnabled(true);
+    ui_->referenceImageButton->setEnabled(true);
+    ui_->saveFolderButton->setEnabled(true);
+    ui_->optionsButton->setEnabled(true);
+    ui_->resetButton->setEnabled(false);
+}
+
+void MainWindow::buttonsEnabledStop()
+{
+    ui_->stopButton->setEnabled(true);
+    ui_->startButton->setEnabled(false);
+    ui_->inputImageButton->setEnabled(false);
+    ui_->referenceImageButton->setEnabled(false);
+    ui_->saveFolderButton->setEnabled(false);
+    ui_->optionsButton->setEnabled(false);
+    ui_->resetButton->setEnabled(false);
+}
+
+void MainWindow::buttonsEnabledReset()
+{
+    ui_->stopButton->setEnabled(false);
+    ui_->startButton->setEnabled(false);
+    ui_->inputImageButton->setEnabled(false);
+    ui_->referenceImageButton->setEnabled(false);
+    ui_->saveFolderButton->setEnabled(false);
+    ui_->optionsButton->setEnabled(false);
+    ui_->resetButton->setEnabled(true);
 }

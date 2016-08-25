@@ -53,45 +53,6 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QPushButton" name="inputImageButton">
-        <property name="text">
-         <string>Wczytaj obraz wejsciowy</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="referenceImageButton">
-        <property name="text">
-         <string>Wczytaj obraz referencyjny</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="startButton">
-        <property name="text">
-         <string>Start</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="stopButton">
-        <property name="text">
-         <string>Stop</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="optionsButton">
-        <property name="text">
-         <string>Opcje</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
     <item row="1" column="1">
      <widget class="QGroupBox" name="infoBox">
       <property name="title">
@@ -101,7 +62,7 @@
        <item row="0" column="0">
         <widget class="QLabel" name="generationNumberLabel">
          <property name="text">
-          <string>Number generacji</string>
+          <string>Numer generacji</string>
          </property>
         </widget>
        </item>
@@ -534,6 +495,20 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="operationNameLabel">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="individualNumberLabel">
+         <property name="text">
+          <string>Number osobnika</string>
+         </property>
+        </widget>
+       </item>
        <item row="2" column="1">
         <widget class="QLCDNumber" name="individualNumber">
          <property name="palette">
@@ -953,31 +928,10 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="individualNumberLabel">
-         <property name="text">
-          <string>Number osobnika</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="operationNameLabel">
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="0">
         <widget class="QLabel" name="maxGenerationNumberLabel">
          <property name="text">
           <string>Liczba generacji</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="ideal">
-         <property name="text">
-          <string>Minimalny wynik</string>
          </property>
         </widget>
        </item>
@@ -1397,6 +1351,13 @@
             </colorrole>
            </disabled>
           </palette>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="ideal">
+         <property name="text">
+          <string>Minimalny wynik</string>
          </property>
         </widget>
        </item>
@@ -3127,6 +3088,75 @@
       <zorder>resultLabelBest</zorder>
       <zorder>resultNumberBest</zorder>
      </widget>
+    </item>
+    <item row="1" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QPushButton" name="inputImageButton">
+        <property name="text">
+         <string>Wczytaj obraz wejsciowy</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="referenceImageButton">
+        <property name="text">
+         <string>Wczytaj obraz referencyjny</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="saveFolderButton">
+        <property name="text">
+         <string>Wybierz folder zapisu</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="startButton">
+        <property name="text">
+         <string>Start</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="stopButton">
+        <property name="text">
+         <string>Stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QPushButton" name="optionsButton">
+          <property name="text">
+           <string>Opcje</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="resetButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::StrongFocus</enum>
+          </property>
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
+          </property>
+          <property name="text">
+           <string>Reset</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

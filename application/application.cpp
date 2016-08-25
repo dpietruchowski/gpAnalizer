@@ -9,547 +9,198 @@ using namespace std;
 using namespace cv;
 using namespace tinyxml2;
 
-Application::Application()
+Application::Application():
+    stopParam_(0, 0), geneticParam_(0, 0, 0, FITNESS_ROULETTESELECTION, HAMMING)
 {
-    string katalog = "sam";
+    isStopped_ = 0;
+    best_.programResult = 10000000;
 
-    string command = "rm -r  ";
-    command += katalog;
-    const char *cstr = command.c_str();
-    system(cstr);
-    command = "mkdir ";
-    command += katalog;
-    cstr = command.c_str();
-    system(cstr);
-
-    this->setKatalog(katalog);
-    this->isStopped = 0;
-
-    this->maxGenerationNumber = 300;
-    this->minResult = 2;
-    this->best.programResult = 10000000;
-
-    this->generationNumber = 0;
-    this->populationSize = 250;
-    this->treeDepth = 9;
-    this->hoistMutationProbability = 0.01;
-    this->nodeMutationProbability = 0.07;
-    this->collapseMutationProbability = 0.01;
-    this->subtreeMutationProbability = 0.15;
-    this->subtreeCrossoverProbability = 0.65;
-    this->arity2CrossoverProbability = 0.01;
-    this->selectType = ROULETTE_SELECTION;
-    this->fitType = HAUSDORFF_CANNY;
-    this->tournamentSize = 40;
-    this->parentsSize = 40;
-    string inputImg = katalog + ".png" ;
-    string refImg = katalog + "_ref.png";
-    setImages(inputImg, refImg);
+    generationNumber_ = 0;
+    selection_ = nullptr;
 
     FunctionNode::getFunctionSet().addFunction("bitwiseNot");
     FunctionNode::getFunctionSet().addFunction("bitwiseXor");
     FunctionNode::getFunctionSet().addFunction("bitwiseOr");
     FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
 
-    generator.registerObject(0.25, FunctionNode::create);
-    generator.registerObject(0.6, MorphoNode::create);
-    generator.registerObject(0.15, ThreshNode::create);
+    generator_.registerObject(0.25, FunctionNode::create);
+    generator_.registerObject(0.6, MorphoNode::create);
+    generator_.registerObject(0.15, ThreshNode::create);
+    operationGenerator_.registerObject(0.4, SubtreeMutation::create);
+    operationGenerator_.registerObject(0.05, NodeMutation::create);
+    operationGenerator_.registerObject(0.03, HoistMutation::create);
+    operationGenerator_.registerObject(0.02, CollapseMutation::create);
+    operationGenerator_.registerObject(0.5, SubtreeCrossover::create);
+
+    QObject::connect(&actualPopulation_, SIGNAL(getAssessedNumber(int)), this, SLOT(getAssessedNumber(int)));
+}
+
+Application::Application(const Application &rhs):
+    QThread(),
+    katalog_(rhs.katalog_), stopParam_(rhs.stopParam_),
+    referenceImage_(rhs.referenceImage_), inputImage_(rhs.inputImage_),
+    geneticParam_(rhs.geneticParam_), selection_(nullptr),
+    generator_(rhs.generator_), operationGenerator_(rhs.operationGenerator_)
+{
+
+}
+
+Application &Application::operator =(const Application &rhs)
+{
+    Application copy(rhs);
+    swap(copy);
+    return *this;
+}
+
+void Application::swap(Application &rhs)
+{
+    std::swap(katalog_,rhs.katalog_);
+    std::swap(stopParam_,rhs.stopParam_);
+    std::swap(referenceImage_,rhs.referenceImage_);
+    std::swap(inputImage_,rhs.inputImage_);
+    std::swap(geneticParam_,rhs.geneticParam_);
+    std::swap(generator_,rhs.generator_);
+    std::swap(operationGenerator_,rhs.operationGenerator_);
+    actualPopulation_.swap(&rhs.actualPopulation_);
+}
+
+Application::~Application()
+{
+    if(selection_ != nullptr)
+    {
+        delete selection_;
+        selection_ = nullptr;
+    }
+    terminate();
+    wait();
 }
 
 void Application::setKatalog(string katalog)
 {
-    this->katalog = katalog;
+    katalog_ = katalog;
 }
 
-void Application::setImages(string inputImage, string referenceImage)
+void Application::clearKatalog()
 {
-    this->inputImage = imread(inputImage, 0);
-    if( !this->inputImage.data )
+    if(katalog_ == "")
+        throw string("Nie wybrano katalogu");
+
+    string command = "rm -r  ";
+    command += katalog_;
+    const char *cstr = command.c_str();
+    system(cstr);
+    command = "mkdir ";
+    command += katalog_;
+    cstr = command.c_str();
+    system(cstr);
+}
+
+void Application::getAssessedNumber(int number)
+{
+    emit getAssessed(number);
+}
+
+void Application::setInputImage(const cv::Mat& inputImage)
+{
+    inputImage_ = inputImage;
+    if( !inputImage_.data )
     {
         string exception = "Could not open or find the input image";
         throw exception;
     }
-    TerminalNode::getTerminalSet().setTerminal( MatPtr(new Mat(this->inputImage)) );
-    this->referenceImage = imread(referenceImage, 0);
-    if( !this->referenceImage.data )
+    TerminalNode::getTerminalSet().setTerminal( MatPtr(new Mat(inputImage_)) );
+}
+
+void Application::setReferenceImage(const cv::Mat& referenceImage)
+{
+    referenceImage_ = referenceImage;
+    if( !referenceImage_.data )
     {
         string exception = "Could not open or find the reference image";
         throw exception;
     }
 }
 
-void Application::setParameters(int populationSize,
-                                SelectionType selectType,
-                                FitnessType fitType)
-{
-    this->populationSize = populationSize;
-    this->selectType = selectType;
-    this->fitType = fitType;
-}
-
-void Application::setCrossoverParameters(double subtreeCrossoverProbability,
-                                         double arity2CrossoverProbability)
-{
-    this->subtreeCrossoverProbability = subtreeCrossoverProbability;
-    this->arity2CrossoverProbability = arity2CrossoverProbability;
-}
-
-void Application::setMutationParameters(double hoistMutationProbability,
-                                        double nodeMutationProbability,
-                                        double collapseMutationProbability,
-                                        double subtreeMutationProbability)
-{
-    this->hoistMutationProbability = hoistMutationProbability;
-    this->nodeMutationProbability = nodeMutationProbability;
-    this->collapseMutationProbability = collapseMutationProbability;
-    this->subtreeMutationProbability = subtreeMutationProbability;
-}
-
-int Application::distance(const vector<Point> &a,const vector<Point> &b)
-{
-    int maxDistAB = 0;
-    for (size_t i = 0; i < a.size(); i++)
-    {
-        int minB = 1000000;
-        for (size_t j = 0; j < b.size(); j++)
-        {
-            int dx = abs(a[i].x - b[j].x);
-            int dy = abs(a[i].y - b[j].y);
-            int tmpDst = dx*dx + dy*dy;
-
-            if (tmpDst < minB)
-            {
-                minB = tmpDst;
-            }
-            if (tmpDst == 0)
-            {
-                break;
-            }
-        }
-        maxDistAB += minB;
-    }
-    if(a.size() != 0)
-        maxDistAB/=a.size();
-    return maxDistAB;
-}
-
-int Application::distanceHausdorff(const vector<Point> &a,const vector<Point> &b)
-{
-    int maxDistAB = distance(a, b);
-    int maxDistBA = distance(b, a);
-    int maxDist = max(maxDistAB, maxDistBA);
-
-    return maxDist;
-}
-
-int Application::fitnessHausdorffCanny(const Mat &A, const Mat &B)
-{
-    vector<Point> a, b, c;
-    Mat C, D;
-
-    threshold(A, C, 125, 255, 0);
-    threshold(B, D, 125, 255, 0);
-    extractChannel(C, C, 0);
-    extractChannel(D, D, 0);
-    //bitwise_not(C,C);
-    Canny(C,C,20,20*30);
-    findNonZero(C, a);
-    //bitwise_not(D,D);
-    Canny(D,D,20,20*30);
-    findNonZero(D, b);
-
-    int measure = distanceHausdorff(a, b);
-    return measure;
-}
-
-int Application::fitnessHausdorffSmall(const Mat &A, const Mat &B)
-{
-    vector<Point> a, b, c;
-    Mat C, D;
-
-    threshold(A, C, 125, 255, 0);
-    threshold(B, D, 125, 255, 0);
-    extractChannel(C, C, 0);
-    extractChannel(D, D, 0);
-
-    bitwise_not(C,C);
-    resize(C,C,Size(220,114));
-    findNonZero(C, a);
-    bitwise_not(D,D);
-    resize(D,D,Size(220,114));
-    findNonZero(D, b);
-
-    int measure = distanceHausdorff(a, b);
-    return measure;
-}
-
-int Application::fitnessHamming(const Mat &A, const Mat &B)
-{
-    Mat C, D, E;
-
-    threshold(A, C, 125, 255, 0);
-    threshold(B, D, 125, 255, 0);
-    extractChannel(C, C, 0);
-    extractChannel(D, D, 0);
-    bitwise_not(C, C);
-    bitwise_not(D, D);
-    bitwise_xor(D,C,E);
-    extractChannel(E,E,0);
-
-    int measure = 0;
-    if (countNonZero(C)  < countNonZero(D))
-        measure += countNonZero(E)*10;
-    else measure = countNonZero(E);
-
-    return measure;
-}
-    //Change with random subtree
-TreePtr Application::subtreeMutation(Tree *parent)
-{
-    int mutationPoint = getRandomMutationPoint(parent);
-    int subtreeDepth = parent->getSubtreeDepth(mutationPoint);
-    Tree newSubtree(subtreeDepth, 0);
-    newSubtree.initialize(FULL_INIT, generator);
-    TreePtr offspring = move( parent->clone(0) );
-    offspring->setSubtree(mutationPoint, *newSubtree.getRoot());
-
-    return move(offspring);
-}
-    //Mutate random node
-TreePtr Application::nodeMutation(Tree *parent)
-{
-    int mutationPoint = getRandomMutationPoint(parent);
-
-    TreePtr offspring = move( parent->clone(0) );
-    offspring->getNode(mutationPoint)->mutate();
-
-    return move(offspring);
-}
-    //Offspring is subtree of parent
-TreePtr Application::hoistMutation(Tree *parent)
-{
-    int mutationPoint = getRandomMutationPoint(parent);
-        //Offspring is subtree with randomly picked node
-    TreePtr offspring = parent->cloneSubtree(mutationPoint, 0);
-    if(offspring->getRoot()->getId().type == TERMINAL_NODE)
-        offspring = move(parent->clone(0));
-
-    return move(offspring);
-}
-    //Change with terminal node
-TreePtr Application::collapseMutation(Tree *parent)
-{
-    int mutationPoint = getRandomMutationPoint(parent);
-        //Changing radomly picked node with new term node.
-    NodePtr newNode( TerminalNode::create(0) );
-    TreePtr offspring = move( parent->clone(0) );
-    offspring->setNode(mutationPoint, *newNode);
-
-    return move(offspring);
-}
-
-TreePtr Application::subtreeCrossover(Tree *parent1, Tree *parent2)
-{
-    int mutationPoint = 1;
-    if (parent1->getSize() > parent2->getSize())
-    {
-        mutationPoint = getRandomMutationPoint(parent2);
-    } else
-    {
-        mutationPoint = getRandomMutationPoint(parent1);
-    }
-
-    TreePtr newSubtree = move(parent1->cloneSubtree(mutationPoint, 0));
-    TreePtr offspring = move( parent2->clone(0) );
-    offspring->setSubtree(mutationPoint, *newSubtree->getRoot() );
-
-    return move(offspring);
-}
-
-//TreePtr Application::arity2Crossover(Tree *parent1, Tree *parent2)
-//{
-//    int mutationPoint = getRandomMutationPoint(parent1);
-//    TreePtr newSubtree1 = move(parent1->copySubtree(mutationPoint));
-
-//    mutationPoint = getRandomMutationPoint(parent2);
-//    TreePtr newSubtree2 = move(parent2->copySubtree(mutationPoint));
-
-//    NodePtr newRoot( new FunctionNode(functions.getRandomFunction(2)) );
-//    newRoot->addChild(newSubtree1->returnRoot());
-//    newRoot->addChild(newSubtree2->returnRoot());
-
-//    TreePtr offspring( new tree(3) );
-//    offspring->setRoot( move(newRoot) );
-
-//    return move(offspring);
-//}
-
-int Application::getRandomMutationPoint(Tree *parent)
-{
-    int mutationPoint = 1 + rand() % (parent->getSize() - 1);
-        //Randomly picking node which isnt terminal node
-    for (int i = 0; i < parent->getSize(); i++)
-    {
-        if ( parent->getNode(mutationPoint)->getId().type == TERMINAL_NODE )
-            mutationPoint = 1 + rand() % (parent->getSize() - 1);
-        else
-            break;
-    }
-    return mutationPoint;
-}
-
-
-int Application::fitnessMeasure(Tree *individual)
-{
-    Mat image = individual->run();
-    int measure = 10000;
-    switch(this->fitType)
-    {
-    case HAMMING:
-        measure = fitnessHamming(image, this->referenceImage);
-        break;
-    case HAUSDORFF_CANNY:
-        measure = fitnessHausdorffCanny(image, this->referenceImage);
-        break;
-    case HAUSDORFF_SMALL:
-        measure = fitnessHausdorffSmall(image, this->referenceImage);
-        break;
-    }
-
-    return measure;
-}
-
 void Application::assessIndividuals()
 {
-    this->standardizedIndividuals.clear();
-    this->normalizedIndividuals.clear();
-    this->sortedIndividuals.clear();
-    this->parents.clear();
-    for (int i = 0; i < this->actualPopulation.getSize(); i++)
+    if ( isStopped_ == 1 ) return;
+    actualPopulation_.assess(geneticParam_.fitType, referenceImage_);
+
+    if(selection_ != nullptr)
     {
-        if ( this->isStopped == 1 ) return;
-        Tree* individual = this->actualPopulation.getIndividual(i);
-        int measure = fitnessMeasure(individual);
-        pair<int,Tree*> p = make_pair(measure, individual);
-        pair<double,Tree*> n = make_pair((double)measure, individual);
-        this->sortedIndividuals.insert(p);
-        this->parents.insert(p);
-        this->normalizedIndividuals.push_back(n);
-        this->standardizedIndividuals.push_back(n);
-        cout<<"Oceniony osobnik numer "<<i<<endl;
-        emit getIndividual(i);
+        delete selection_;
+        selection_ = nullptr;
     }
-    normalizeFitness();
-    standardizeFitness();
-    pickParents();
-}
 
-void Application::pickParents()
-{
-        //create temporary container
-    map<int,Tree*> tempMap;
-        //copy 20 first element
-    map<int,Tree*>::iterator end = this->parents.begin();
-    for (int i = 0; i < this->parentsSize; i++)
-        ++end;
-    tempMap.insert(this->parents.begin(), end);
-    this->parents.swap(tempMap);
-}
-
-void Application::normalizeFitness()
-{
-    map<int,Tree*>::iterator it =
-            this->sortedIndividuals.end();
-    --it;
-    int worst = it->first;
-
-    int sum = 0;
-    vector<double_tree> normalizedIndividuals;
-    this->normalizedIndividuals.swap(normalizedIndividuals);
-
-    for (auto &i: normalizedIndividuals)
+    switch(geneticParam_.selectType)
     {
-        i.first = (worst - i.first + 1);
-        sum += i.first;
+    case FITNESS_ROULETTESELECTION:
+        selection_ = new FitnessRouletteSelection();
+        break;
+    case TOURNAMENTSELECTION:
+        selection_ = new TournamentSelection(geneticParam_.tournamentSize);
+        break;
+    default:
+        throw string("Bad selection type");
     }
-    double normalizedSum = 0;
-    for (auto const &i: normalizedIndividuals)
-    {
-        double normalized = i.first / sum;
-        normalizedSum += normalized;
-        pair<double,Tree*> p = make_pair(normalized, i.second);
-        this->normalizedIndividuals.push_back(p);
-    }
-}
 
-void Application::standardizeFitness()
-{
-    vector<double_tree> standardizedIndividuals;
-    this->standardizedIndividuals.swap(standardizedIndividuals);
-    map<int,Tree*>::iterator it =
-            this->sortedIndividuals.end();
-    --it;
-    int worst = it->first;
-    for (auto const &i: standardizedIndividuals)
+    for(int i = 0; i < actualPopulation_.getSize(); ++i)
     {
-        double standardized = i.first / worst;
-        pair<double,Tree*> p = make_pair(standardized, i.second);
-        this->standardizedIndividuals.push_back(p);
+        selection_->add(actualPopulation_.getRank(i),
+                       actualPopulation_.getScore(i));
     }
+    selection_->calcScores();
 }
 
 Tree* Application::selectIndividual()
 {
-    switch(this->selectType)
-    {
-    case SELECTION:
-        return selectIndividualFromParents();
-    case ROULETTE_SELECTION:
-        return selectIndividualByFitenss();
-    case TOURNAMENT_SELECTION:
-        return selectIndividualByTournament(this->tournamentSize);
-    }
-    //should never get here;
-    return nullptr;
-}
-
-Tree* Application::selectIndividualFromParents()
-{
-    int random = rand() % this->parents.size();
-    std::map<int,Tree*>::iterator it = this->parents.begin();
-    for (int i = 0; i < random; i++)
-        ++it;
-    return it->second;
-}
-
-Tree* Application::selectIndividualByFitenss()
-{
-    double decision = ((double) rand() / (RAND_MAX));
-    double sum = 0;
-    for (auto const &p: this->normalizedIndividuals)
-    {
-        sum += p.first;
-        if (decision <= sum)
-            return p.second;
-    }
-    //should never get here;
-    return nullptr;
-}
-
-Tree* Application::selectIndividualByTournament(int tournamentSize)
-{
-        //extract subvector with tournament size
-     int index = rand() % (this->standardizedIndividuals.size() - tournamentSize);
-
-     vector<double_tree>::iterator first =
-             this->standardizedIndividuals.begin() + index;
-     vector<double_tree>::iterator last =
-             this->standardizedIndividuals.begin() + index + tournamentSize;
-     vector<double_tree> tournament(first, last);
-        //return best from extracted
-     double_tree bestIndividual = tournament[0];
-     for(auto const &it: tournament)
-     {
-         if (it.first < bestIndividual.first)
-             bestIndividual = make_pair(it.first, it.second);
-     }
-
-     return bestIndividual.second;
+    return actualPopulation_.getIndividual(selection_->select());
 }
 
 TreePtr Application::createNewIndividual()
 {
-        //random for select genetic operation with different probabilities
-    double random = (double)rand() / (RAND_MAX);
-    double probability1 = this->subtreeCrossoverProbability;
-//    double probability2 = probability1 +
-//            this->arity2CrossoverProbability;
-    double probability2 = probability1 +
-            this->subtreeMutationProbability;
-    double probability3 = probability2 +
-            this->nodeMutationProbability;
-    double probability4 = probability3 +
-            this->hoistMutationProbability;
-    double probability5 = probability4 +
-            this->collapseMutationProbability;
-    TreePtr newIndividual;
-    if ( random < probability1 )
-    {
-        Tree* parent1 = selectIndividual();
-        Tree* parent2 = selectIndividual();
-        newIndividual = move(subtreeCrossover(parent1, parent2));
+    GeneticOperation *operation = operationGenerator_.createRandomPtr();
+    vector<Tree*> parents;
+    for(int i = 0; i < operation->getSize(); ++i)
+        parents.push_back(selectIndividual());
 
-    } /*else if ( random < probability2 )
-    {
-        Tree* parent1 = selectIndividual();
-        Tree* parent2 = selectIndividual();
-        newIndividual = move(arity2Crossover(parent1, parent2));
-    } */else if ( random < probability2 )
-    {
-        Tree* parent = selectIndividual();
-        newIndividual = move(subtreeMutation(parent));
-    } else if ( random < probability3 )
-    {
-        Tree* parent = selectIndividual();
-        newIndividual = move(nodeMutation(parent));
-    } else if ( random < probability4 )
-    {
-        Tree* parent = selectIndividual();
-        newIndividual = move(hoistMutation(parent));
-    } else if ( random < probability5 )
-    {
-        Tree* parent = selectIndividual();
-        newIndividual = move(collapseMutation(parent));
-    } else //if any other genetic operation just copy - reproduction
-    {
-        Tree* parent = selectIndividual();
-        newIndividual = move(parent->clone(0));
-    }
-
-    return move(newIndividual);
+    return operation->reproduce(parents, &generator_);
 }
 
 void Application::evolution()
 {
-    newPopulation.clear();
-    map<int,Tree*>::iterator it = this->parents.begin();
-    newPopulation.addIndividual( move(it->second->clone(0)),
-                                 this->generationNumber);
-    for (int i = 0; i < (this->populationSize - 1); i++)
+    newPopulation_.clear();
+    newPopulation_.addIndividual( actualPopulation_.getBest().second->clone(0));
+    for (int i = 0; i < (geneticParam_.populationSize - 1); i++)
     {
         if (i == 8)
             cout<<endl;
-        newPopulation.addIndividual(
-                     move(createNewIndividual()),
-                    this->generationNumber);
+        newPopulation_.addIndividual( createNewIndividual() );
     }
-    actualPopulation.swap(&newPopulation);
+    actualPopulation_.swap(&newPopulation_);
 }
 
 void Application::init()
 {
-    this->actualPopulation.create(
-                this->populationSize,
-                this->treeDepth,
-                this->generationNumber);
-    this->actualPopulation.init(generator);
+    actualPopulation_.create(geneticParam_.populationSize, geneticParam_.treeDepth);
+    actualPopulation_.init(generator_);
 }
 
-void Application::saveBest(string &program)
+void Application::saveBest(string &)
 {
         //write best image
-    map<int,Tree*>::iterator it = this->sortedIndividuals.begin();
-    int measure = it->first;
-    string folder = katalog;
-    Mat result = it->second->run();
+    pair<int, Tree*> it = actualPopulation_.getBest();
+    int measure = it.first;
+    string folder = katalog_;
+    Mat result = it.second->run();
     threshold(result,result,125,255,0);
     string name = "/generation";
-    string nr = to_string(this->generationNumber);
+    string nr = to_string(generationNumber_);
     name = folder + name + nr + "_" + to_string(measure) + ".png";
     imwrite(name,result);
         //save xml file
     XMLDocument doc;
-    XMLElement *root = it->second->save(doc);
+    XMLElement *root = it.second->save(doc);
     doc.InsertFirstChild(root);
 
     name = "/program";
@@ -566,31 +217,73 @@ void Application::saveBest(string &program)
 
 void Application::stop()
 {
-    this->isStopped = 1;
+    isStopped_ = 1;
+}
+
+void Application::setGeneticOperationProbabilities(const GeneticOperationProbabilities &probabilities)
+{
+    if(probabilities.sum() != 1)
+        throw string("Application::setGeneticOperationProbabilities");
+
+    GeneticOperationGenerator generator;
+    std::swap(operationGenerator_, generator);
+
+    operationGenerator_.registerObject(probabilities.subtreeMutation,
+                                    SubtreeMutation::create);
+    operationGenerator_.registerObject(probabilities.nodeMutation,
+                                    NodeMutation::create);
+    operationGenerator_.registerObject(probabilities.hoistMutation,
+                                    HoistMutation::create);
+    operationGenerator_.registerObject(probabilities.collapseMutation,
+                                    CollapseMutation::create);
+    operationGenerator_.registerObject(probabilities.subtreeCrossover,
+                                       SubtreeCrossover::create);
+}
+
+void Application::setGeneticParameters(const GeneticParameters &param)
+{
+    geneticParam_ = param;
+}
+
+void Application::setStopCriterium(const StopCriteriumParameters &param)
+{
+    stopParam_ = param;
+}
+
+void Application::setNodeProbabilities(const GeneticNodeProbabilities &probabilities)
+{
+    if(probabilities.sum() != 1)
+        throw string("Application::setNodeProbabilities");
+
+    NodeGenerator generator;
+    std::swap(generator_, generator);
+
+    generator_.registerObject(probabilities.function, FunctionNode::create);
+    generator_.registerObject(probabilities.morpho, MorphoNode::create);
+    generator_.registerObject(probabilities.thresh, ThreshNode::create);
 }
 
 void Application::run()
 {
-    this->generationNumber = 0;
-    emit getGeneration(this->generationNumber);
+    clearKatalog();
+    generationNumber_ = 0;
+    emit getGeneration(generationNumber_);
 
     emit getOperation("Inicjacja");
     init();
     assessIndividuals();
-    Tree* bestIndividual = this->sortedIndividuals.begin()->second;
+    Tree* bestIndividual = actualPopulation_.getBest().second;
     string program = bestIndividual->write();
     saveBest(program);
-    //actualPopulation.savePopulation(987, this->katalog);
     checkIfBetterSolution();
 
-    this->generationNumber++;
-    emit getGeneration(this->generationNumber);
-
-    for (int i = 0; i < this->maxGenerationNumber; i++)
+    generationNumber_++;
+    emit getGeneration(generationNumber_);
+    int checkFitness = 700;
+    for (int i = 0; i < stopParam_.nGenerations; i++)
     {
-        if ( this->isStopped == 1 ) return;
-        cout<<"::::::::::GENERACJA NR "<<this->generationNumber
-              <<":::::::::::"<<endl;
+        if ( isStopped_ == 1 ) return;
+        cout<<":::::::::GENERACJA NR "<<generationNumber_ <<"::::::::::"<<endl;
 
         emit getOperation("Ewolucja");
         evolution();
@@ -598,46 +291,46 @@ void Application::run()
         emit getOperation("Ocenianie");
         assessIndividuals();
 
-        bestIndividual = this->sortedIndividuals.begin()->second;
+        bestIndividual = actualPopulation_.getBest().second;
         program = bestIndividual->write();
         saveBest(program);
 
         checkIfBetterSolution();
-        //actualPopulation.savePopulation(this->generationNumber, this->katalog);
 
-        if ( this->best.programResult < this->minResult )
+        if ( best_.programResult < stopParam_.minResult )
             break;
-        if ( this->best.programResult < 500 )
+        if ( best_.programResult < checkFitness )
         {
-            this->fitType = HAMMING;
-            this->best.programResult = 10000000;
+            geneticParam_.fitType = HAUSDORFF_CANNY;
+            best_.programResult = 10000000;
+            checkFitness = -1;
         }
 
-        this->generationNumber++;
-        emit getGeneration(this->generationNumber);
+        generationNumber_++;
+        emit getGeneration(generationNumber_);
     }
 
-    this->bestIndividualOutput = bestIndividual->run();
-    bestIndividual = this->sortedIndividuals.begin()->second;
+    bestIndividualOutput = bestIndividual->run();
+    bestIndividual = actualPopulation_.getBest().second;
     program = bestIndividual->write();
     saveBest(program);
 }
 
 void Application::checkIfBetterSolution()
 {
-    int bestProgramResult = this->sortedIndividuals.begin()->first;
-    if ( bestProgramResult < this->best.programResult )
+    int bestProgramResult = actualPopulation_.getBest().first;
+    if ( bestProgramResult < best_.programResult )
     {
-        Tree* program = this->sortedIndividuals.begin()->second;
+        Tree* program = actualPopulation_.getBest().second;
         cout << program->write() << endl;
         int id = program->getId();
-        this->bestProgram = move( program->clone(id) );
+        bestProgram_ = move( program->clone(id) );
         int treeNumber = 15;
 
-        this->best.generationNumber = this->generationNumber;
-        this->best.individualNumber = treeNumber;
-        this->best.image = this->bestProgram->run();
-        this->best.programResult = bestProgramResult;
-        emit newBestProgram(this->best);
+        best_.generationNumber = generationNumber_;
+        best_.individualNumber = treeNumber;
+        best_.image = bestProgram_->run();
+        best_.programResult = bestProgramResult;
+        emit newBestProgram(best_);
     }
 }

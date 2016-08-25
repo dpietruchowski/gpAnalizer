@@ -14,9 +14,10 @@ TARGET = gpAnalizer
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11
 
+LIBS += -L"$$OUT_PWD/libs"
 LIBS += -ltinyxml2
 LIBS += -lopencv_highgui -lopencv_core -lopencv_imgcodecs -lopencv_imgproc
-LIBS += -L"/usr/lib/x86_64-linux-gnu" -lboost_system
+LIBS += -lboost_system
 
 
 SOURCES += main.cpp\
@@ -34,6 +35,28 @@ SOURCES += main.cpp\
     application/application.cpp \
     node/threshnode.cpp \
     parser/parser.cpp \
+    fitness/fitness.cpp \
+    fitness/fitnessgenerator.cpp \
+    fitness/hamming.cpp \
+    fitness/hausdorff.cpp \
+    fitness/hausdorffcanny.cpp \
+    fitness/hausdorffsmall.cpp \
+    selection/rouletteselection.cpp \
+    selection/selection.cpp \
+    selection/selectiontypes.cpp \
+    selection/tournamentselection.cpp \
+    operation/mutation.cpp \
+    operation/hoistmutation.cpp \
+    operation/nodemutation.cpp \
+    operation/subtreemutation.cpp \
+    operation/collapsemutation.cpp \
+    operation/geneticoperation.cpp \
+    operation/crossover.cpp \
+    operation/subtreecrossover.cpp \
+    operation/arity2crossover.cpp \
+    operation/geneticoperationgenerator.cpp \
+    ui/settings.cpp \
+    ui/myvalidator.cpp
 
 HEADERS  += mainwindow.h \
     node/nodes.h \
@@ -51,9 +74,34 @@ HEADERS  += mainwindow.h \
     application/application.h \
     node/threshnode.h \
     parser/parser.h \
+    fitness/fitness.h \
+    fitness/fitnessgenerator.h \
+    fitness/hamming.h \
+    fitness/hausdorff.h \
+    fitness/hausdorffcanny.h \
+    fitness/hausdorffsmall.h \
+    selection/rouletteselection.h \
+    selection/selection.h \
+    selection/selection_h.h \
+    selection/selectiontypes.h \
+    selection/tournamentselection.h \
+    fitness/fitness_h.h \
+    operation/mutation.h \
+    operation/geneticoperation.h \
+    operation/hoistmutation.h \
+    operation/nodemutation.h \
+    operation/subtreemutation.h \
+    operation/collapsemutation.h \
+    operation/crossover.h \
+    operation/subtreecrossover.h \
+    operation/arity2crossover.h \
+    operation/geneticoperation_h.h \
+    operation/geneticoperationgenerator.h \
+    ui/settings.h \
+    ui/myvalidator.h
 
 FORMS    += mainwindow.ui \
-    settings.ui
+    ui/settings.ui
 
     prog.path = $$_PRO_FILE_PWD_/../GP
     prog.files = $$OUT_PWD/gpAnalizer

@@ -1,5 +1,10 @@
 #include "population.h"
 
+#include <limits>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+
 using namespace std;
 
 Population::Population()
@@ -7,60 +12,115 @@ Population::Population()
     counterTrees_ = 0;
 }
 
-Population::Population(int size, int treeDepth, int generationNumber)
+Population::Population(int size, int treeDepth)
 {
-    counterTrees_ = 0;
-    for(int i=0; i<size; i++)
-    {
-        individuals_.push_back( TreePtr(new Tree(treeDepth, counterTrees_++)) );
-    }
+    create(size, treeDepth);
 }
 
 Population::~Population()
 {
 }
 
-void Population::erase(int i)
-{
-    vector<TreePtr>::iterator it = individuals_.begin();
-    for (int n = 0; n < i; n++)
-        ++it;
-    individuals_.erase(it);
-}
-
-void Population::create(int size, int treeDepth, int generationNumber)
+void Population::create(int size, int treeDepth)
 {
     counterTrees_ = 0;
     for(int i=0; i<size; i++)
     {
-        individuals_.push_back( TreePtr(new Tree(treeDepth, counterTrees_++)) );
+        individuals_.push_back( Individual(TreePtr(new Tree(treeDepth,
+                                                            counterTrees_++))) );
     }
 }
 
 void Population::init(NodeGenerator& generator)
 {
-    int populationSize = getSize();
-    for (initializeIt_ = individuals_.begin();
-         initializeIt_ < individuals_.begin()+populationSize/2;
-         ++initializeIt_)
+    int populationSize = getSize();int i = 0;
+    for(; i < populationSize/2; ++i)
     {
-       (*initializeIt_)->initialize(FULL_INIT, generator);
+        individuals_[i].tree->initialize(FULL_INIT, generator);
     }
-
-    for (; initializeIt_ < individuals_.end(); ++initializeIt_)
+    for(; i < populationSize; ++i)
     {
-       (*initializeIt_)->initialize(GROW_INIT, generator);
+        individuals_[i].tree->initialize(GROW_INIT, generator);
     }
 }
 
-Tree* Population::getIndividual(int i)
+Tree *Population::getIndividual(int i)
 {
-    return individuals_[i].get();
+    return individuals_[i].tree.get();
 }
 
-void Population::addIndividual(TreePtr newIndividual, int generationNumber)
+pair<int,Tree*> Population::getBest()
 {
-    individuals_.push_back( move(newIndividual) );
+    for(auto &ind: individuals_)
+    {
+        if(ind.rank == 0)
+            return make_pair(ind.score,ind.tree.get());
+    }
+    return make_pair(0, nullptr);
+}
+
+int Population::getScore(int i) const
+{
+    return individuals_[i].score;
+}
+
+int Population::getRank(int i) const
+{
+    return individuals_[i].rank;
+}
+
+void Population::addIndividual(TreePtr newIndividual)
+{
+    individuals_.push_back( Individual(move(newIndividual)) );
+}
+
+void Population::sort()
+{
+    //score, position
+    vector<pair<int,int>> sorted;
+    int i = 0;
+    for(const auto& ind: individuals_)
+    {
+        sorted.push_back(make_pair(ind.score, i));
+        ++i;
+    }
+    std::sort(sorted.begin(), sorted.end());
+
+    i = 0;
+    for(const auto& ind: sorted)
+    {
+        individuals_[ind.second].rank = i;
+        ++i;
+    }
+
+}
+
+void Population::assess(FitnessType type, const cv::Mat &referenceImage)
+{
+    Fitness *fitness = nullptr;
+    switch(type)
+    {
+    case HAUSDORFF: fitness = Hausdorff::create(referenceImage);
+        break;
+    case HAUSDORFF_CANNY: fitness = HausdorffCanny::create(referenceImage);
+        break;
+    case HAMMING: fitness = Hamming::create(referenceImage);
+        break;
+    default:
+        throw string("Population::assess: Should never get here");
+    }
+    assess(fitness);
+
+    delete fitness;
+}
+
+void Population::assess(FitnessGenerator &generator)
+{
+
+    Fitness *fitness = generator.createRandomPtr();
+    assess(fitness);
+
+    delete fitness;
 }
 
 int Population::getSize()
@@ -79,22 +139,15 @@ void Population::clear()
     counterTrees_ = 0;
 }
 
-void Population::savePopulation(int generationNumber, string katalog)
+void Population::assess(Fitness *fitness)
 {
-    string command = "mkdir ";
-    command += katalog + "/population";
-    command += to_string(generationNumber);
-    const char *cstr = command.c_str();
-    system(cstr);
     int i = 0;
-    for(auto const &p: individuals_)
+    for(auto &ind: individuals_)
     {
-        cv::Mat result = p->run();
-        string folder = "images/population";
-        string nr = to_string(generationNumber);
-        string name = "individual";
-        name = folder + nr + "/" + name + to_string(i) + ".png";
-        cv::imwrite(name,result);
-        i++;
+        cv::Mat result = ind.tree->run();
+        ind.score = fitness->measure(result);
+        emit getAssessedNumber(i);
+        ++i;
     }
+    sort();
 }

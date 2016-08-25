@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include "ui/settings.h"
+#include "ui_settings.h"
 #include <QApplication>
 #include <cstdio>
 #include <stdlib.h>
@@ -15,6 +17,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
+
     return a.exec();
 }
 

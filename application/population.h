@@ -3,30 +3,56 @@
 
 #include <vector>
 #include "tree.h"
+#include "fitness/fitness_h.h"
+#include "selection/selection_h.h"
+#include <limits>
+#include <QtCore>
 
-class Population
+struct Individual
 {
+    int rank;
+    int score;
+    TreePtr tree;
+    Individual(TreePtr treee):
+        rank(-1), score(std::numeric_limits<int>::max())
+    { tree = move(treee); }
+};
+
+class Population : public QObject
+{
+    Q_OBJECT
 public:
     Population();
-    Population(int size, int treeDepth, int generationNumber);
+    Population(int size, int treeDepth);
     ~Population();
 
 public:
-    void erase(int i);
-    void create(int size, int treeDepth, int generationNumber);
+    void create(int size, int treeDepth);
     void init(NodeGenerator& generator);
-    void addIndividual(TreePtr newIndividual, int generationNumber);
-    Tree* getIndividual (int i);
+    Tree* getIndividual(int i);
+    std::pair<int,Tree*> getBest();
+    int getScore(int i) const;
+    int getRank(int i) const;
+    void assess(FitnessType type, const cv::Mat& referenceImage);
+    void assess(FitnessGenerator& generator);
+
+    void addIndividual(TreePtr newIndividual);
     int getSize();
     void swap(Population* newPopulation);
     void clear();
-    void savePopulation(int generationNumber, std::string katalog);
 
 private:
-    std::vector<TreePtr> individuals_;
-    std::vector<TreePtr>::iterator initializeIt_;
+    void assess(Fitness* fitness);
+    void sort();
+
+private:
+    std::vector<Individual> individuals_;
+    std::vector<Individual>::iterator initializeIt_;
 private:
     int counterTrees_;
+
+signals:
+    void getAssessedNumber(int);
 };
 
 #endif // POPULATION_H
