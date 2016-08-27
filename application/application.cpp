@@ -10,10 +10,11 @@ using namespace cv;
 using namespace tinyxml2;
 
 Application::Application():
-    stopParam_(0, 0), geneticParam_(0, 0, 0, FITNESS_ROULETTESELECTION, HAMMING)
+    stopParam_(200, 50),
+    geneticParam_(200, 5, 40, FITNESS_ROULETTESELECTION, HAMMING),
+    stats_(geneticParam_.populationSize),  best_()
 {
     isStopped_ = 0;
-    best_.programResult = 10000000;
 
     generationNumber_ = 0;
     selection_ = nullptr;
@@ -32,7 +33,10 @@ Application::Application():
     operationGenerator_.registerObject(0.02, CollapseMutation::create);
     operationGenerator_.registerObject(0.5, SubtreeCrossover::create);
 
-    QObject::connect(&actualPopulation_, SIGNAL(getAssessedNumber(int)), this, SLOT(getAssessedNumber(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getAssessedNumber(int)),
+                     this, SLOT(getAssessedNumber(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getNonZerosPixels(int)),
+                     this, SLOT(getNonZerosPixels(int)));
 }
 
 Application::Application(const Application &rhs):
@@ -40,9 +44,13 @@ Application::Application(const Application &rhs):
     katalog_(rhs.katalog_), stopParam_(rhs.stopParam_),
     referenceImage_(rhs.referenceImage_), inputImage_(rhs.inputImage_),
     geneticParam_(rhs.geneticParam_), selection_(nullptr),
-    generator_(rhs.generator_), operationGenerator_(rhs.operationGenerator_)
+    generator_(rhs.generator_), operationGenerator_(rhs.operationGenerator_),
+    stats_(geneticParam_.populationSize), best_()
 {
+    isStopped_ = 0;
 
+    generationNumber_ = 0;
+    selection_ = nullptr;
 }
 
 Application &Application::operator =(const Application &rhs)
@@ -55,12 +63,16 @@ Application &Application::operator =(const Application &rhs)
 void Application::swap(Application &rhs)
 {
     std::swap(katalog_,rhs.katalog_);
+    std::swap(isStopped_, rhs.isStopped_);
+    std::swap(generationNumber_, rhs.generationNumber_);
     std::swap(stopParam_,rhs.stopParam_);
     std::swap(referenceImage_,rhs.referenceImage_);
     std::swap(inputImage_,rhs.inputImage_);
     std::swap(geneticParam_,rhs.geneticParam_);
     std::swap(generator_,rhs.generator_);
     std::swap(operationGenerator_,rhs.operationGenerator_);
+    std::swap(stats_, rhs.stats_);
+    std::swap(best_, rhs.best_);
     actualPopulation_.swap(&rhs.actualPopulation_);
 }
 
@@ -100,6 +112,11 @@ void Application::getAssessedNumber(int number)
     emit getAssessed(number);
 }
 
+void Application::getNonZerosPixels(int pixels)
+{
+    stats_.addNonZeros(pixels);
+}
+
 void Application::setInputImage(const cv::Mat& inputImage)
 {
     inputImage_ = inputImage;
@@ -137,6 +154,9 @@ void Application::assessIndividuals()
     case FITNESS_ROULETTESELECTION:
         selection_ = new FitnessRouletteSelection();
         break;
+    case RANK_ROULETTESELECTION:
+        selection_ = new RankRouletteSelection();
+        break;
     case TOURNAMENTSELECTION:
         selection_ = new TournamentSelection(geneticParam_.tournamentSize);
         break;
@@ -148,13 +168,20 @@ void Application::assessIndividuals()
     {
         selection_->add(actualPopulation_.getRank(i),
                        actualPopulation_.getScore(i));
+        stats_.addFitness(actualPopulation_.getScore(i));
+        stats_.addNNodes(actualPopulation_.getIndividual(i)->getSize());
+        stats_.addDepth(actualPopulation_.getIndividual(i)->getDepth());
     }
     selection_->calcScores();
 }
 
 Tree* Application::selectIndividual()
 {
-    return actualPopulation_.getIndividual(selection_->select());
+    int selectedNumber = selection_->select();
+
+    stats_.incRankSelected(actualPopulation_.getRank(selectedNumber));
+
+    return actualPopulation_.getIndividual(selectedNumber);
 }
 
 TreePtr Application::createNewIndividual()
@@ -207,12 +234,11 @@ void Application::saveBest(string &)
     name = folder + name + nr + "_" + to_string(measure) + ".xml";
     XMLError eResult = doc.SaveFile(name.c_str());
 
-        //write best program
-//    name = "/program";
-//    name = folder + name + nr + "_" + to_string(measure) + ".txt";
-//    ofstream plik(name);
-//    plik << program << endl;
-//    plik.close();
+        //write stats
+    name = "/stats";
+    name = folder + name + nr + ".m";
+    stats_.save(name);
+
 }
 
 void Application::stop()
@@ -222,7 +248,7 @@ void Application::stop()
 
 void Application::setGeneticOperationProbabilities(const GeneticOperationProbabilities &probabilities)
 {
-    if(probabilities.sum() != 1)
+    if(probabilities.sum() != 1.0)
         throw string("Application::setGeneticOperationProbabilities");
 
     GeneticOperationGenerator generator;
@@ -238,11 +264,14 @@ void Application::setGeneticOperationProbabilities(const GeneticOperationProbabi
                                     CollapseMutation::create);
     operationGenerator_.registerObject(probabilities.subtreeCrossover,
                                        SubtreeCrossover::create);
+    operationGenerator_.registerObject(probabilities.copy,
+                                       Copy::create);
 }
 
 void Application::setGeneticParameters(const GeneticParameters &param)
 {
     geneticParam_ = param;
+    stats_ = geneticParam_.populationSize;
 }
 
 void Application::setStopCriterium(const StopCriteriumParameters &param)
@@ -265,6 +294,7 @@ void Application::setNodeProbabilities(const GeneticNodeProbabilities &probabili
 
 void Application::run()
 {
+    stats_.clear();
     clearKatalog();
     generationNumber_ = 0;
     emit getGeneration(generationNumber_);
@@ -279,9 +309,9 @@ void Application::run()
 
     generationNumber_++;
     emit getGeneration(generationNumber_);
-    int checkFitness = 700;
     for (int i = 0; i < stopParam_.nGenerations; i++)
     {
+        stats_.clear();
         if ( isStopped_ == 1 ) return;
         cout<<":::::::::GENERACJA NR "<<generationNumber_ <<"::::::::::"<<endl;
 
@@ -299,12 +329,6 @@ void Application::run()
 
         if ( best_.programResult < stopParam_.minResult )
             break;
-        if ( best_.programResult < checkFitness )
-        {
-            geneticParam_.fitType = HAUSDORFF_CANNY;
-            best_.programResult = 10000000;
-            checkFitness = -1;
-        }
 
         generationNumber_++;
         emit getGeneration(generationNumber_);

@@ -14,7 +14,7 @@ class Node
 {
 public:
     Node(const NodeId& id, int size);
-    Node(const tinyxml2::XMLElement* node);
+    explicit Node(const tinyxml2::XMLElement* node);
     virtual ~Node() {}
     void addChild(NodePtr child);
     void setChild(int i, NodePtr child);

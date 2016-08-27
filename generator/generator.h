@@ -1,6 +1,7 @@
 #ifndef GENERATOR_H
 #define GENERATOR_H
 #include <map>
+#include <cmath>
 
 template <typename T>
 struct CreationCounter
@@ -44,6 +45,7 @@ void Generator<T>::registerCallback(double probability,
         last--;
         double threshold = last->first + probability;
 
+        threshold = std::round(threshold * 1000) / 1000;
         if(threshold > 1)
             throw "Nie mozna dodac. Za duze prawdopodobienstwo";
 
@@ -65,7 +67,8 @@ const CreationCounter<T>& Generator<T>::createRandom()
     typename Callbacks::const_iterator last = callbacks_.end();
     last--;
 
-    if(last->first != 1)
+    double lessPrecision = std::round(last->first * 1000) / 1000;
+    if(lessPrecision != 1)
         throw "Suma prawdopodobienstw nie jest rowna jeden";
 
     typename Callbacks::iterator it = callbacks_.lower_bound(random);

@@ -10,10 +10,10 @@ class Settings;
 
 struct Setting
 {
-    GeneticParameters *geneticParam;
-    GeneticOperationProbabilities *geneticOperationProbabilities;
-    GeneticNodeProbabilities *geneticNodeProbabilities;
-    StopCriteriumParameters *stopCriteriumParameters;
+    GeneticParameters geneticParam;
+    GeneticOperationProbabilities geneticOperationProbabilities;
+    GeneticNodeProbabilities geneticNodeProbabilities;
+    StopCriteriumParameters stopCriteriumParameters;
 };
 
 class Settings : public QDialog
@@ -21,9 +21,13 @@ class Settings : public QDialog
     Q_OBJECT
 
 public:
-    explicit Settings(Setting setting, QWidget *parent = 0);
+    explicit Settings(QWidget *parent = 0);
     ~Settings();
 
+public:
+    void setLineEdits();
+
+private:
     void setGeneticParam(const GeneticParameters& param);
     void getGeneticParam(GeneticParameters &param) const;
     void setGeneticOperationProbabilities(const GeneticOperationProbabilities&
@@ -35,17 +39,14 @@ public:
     void setStopCriterium(const StopCriteriumParameters& param);
     void getStopCriterium(StopCriteriumParameters & param) const;
 
-
-private:
-    void setLastOperationProbability(const GeneticOperationProbabilities&
-                                     probabilities);
-    void setLastNodeProbability(const GeneticNodeProbabilities& probabilities);
 private:
     Ui::Settings *ui_;
     Setting setting_;
 
 private slots:
     void okButton();
+signals:
+    void getSettings(const Setting&);
 };
 
 #endif // SETTINGS_H

@@ -2,10 +2,12 @@
 #define APPLICATION_H
 
 #include "population.h"
+#include "stats.h"
 #include "selection/selection.h"
 #include "operation/geneticoperation_h.h"
 #include <vector>
 #include <QtCore>
+#include <cmath>
 
 typedef std::pair<double,Tree*> double_tree;
 
@@ -51,7 +53,8 @@ struct GeneticNodeProbabilities
     GeneticNodeProbabilities(double function, double morpho, double thresh):
         function(function), morpho(morpho), thresh(thresh) {}
     double sum() const
-    { return function + morpho + thresh; }
+    { double s = function + morpho + thresh;
+      return std::round(s * 1000) / 1000; }
 };
 
 struct GeneticOperationProbabilities
@@ -68,14 +71,16 @@ struct GeneticOperationProbabilities
         subtreeMutation(0), nodeMutation(0), hoistMutation(0),
         collapseMutation(0), subtreeCrossover(0),
         copy(0) {}
-    GeneticOperationProbabilities(int subtree, int node, int hoist,
-                                  int collapse, int subtreeCrossover, int copy):
+    GeneticOperationProbabilities(double subtree, double node, double hoist,
+                                  double collapse, double subtreeCrossover,
+                                  double copy):
         subtreeMutation(subtree), nodeMutation(node), hoistMutation(hoist),
         collapseMutation(collapse), subtreeCrossover(subtreeCrossover),
         copy(copy) {}
     double sum() const
-    { return subtreeMutation + nodeMutation + hoistMutation + collapseMutation +
-                subtreeCrossover + copy; }
+    { double s = subtreeMutation + nodeMutation + hoistMutation + collapseMutation +
+                subtreeCrossover + copy;
+      return std::round(s * 1000) / 1000; }
 };
 
 struct StopCriteriumParameters
@@ -115,6 +120,7 @@ private:
     /*
      * Best program result in GP
      */
+    Stats stats_;
     BestIndividual best_;
     TreePtr bestProgram_;
 public:
@@ -153,6 +159,7 @@ private:
     int getRandomMutationPoint(Tree* parent);
 private slots:
     void getAssessedNumber(int number);
+    void getNonZerosPixels(int pixels);
 
 signals:
     void getAssessed(int);

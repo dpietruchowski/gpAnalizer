@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "ui/settings.h"
 
 #include <string>
 #include <iostream>
@@ -15,6 +14,8 @@ MainWindow::MainWindow(QWidget *parent) :
     isInputImage_(false), isReferenceImage_(false), isOptionSetup_(false)
 {
     ui_->setupUi(this);
+    setting_ = new Settings(this);
+    setting_->hide();
     scene_ = new QGraphicsScene();
     ui_->bestImageView->setScene(scene_);
     item_ = new QGraphicsPixmapItem();
@@ -22,6 +23,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QObject::connect(ui_->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
     QObject::connect(ui_->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
+    QObject::connect(setting_, SIGNAL(getSettings(const Setting&)), this, SLOT(setSettings(const Setting&)));
+
     buttonsEnabledStart();
 }
 
@@ -29,6 +32,7 @@ MainWindow::~MainWindow()
 {
     delete ui_;
     delete scene_;
+    delete setting_;
 }
 
 void MainWindow::applicationStart()
@@ -66,10 +70,21 @@ void MainWindow::setBestProgram(BestIndividual best)
     ui_->generationNumberBest->display(best.generationNumber);
     ui_->individualNumberBest->display(best.individualNumber);
 
-    item_->setPixmap(cvMatToQPixmap(best.image));
+    cv::Mat image;
+    threshold(best.image, image, 125, 255, 0);
+
+    item_->setPixmap(cvMatToQPixmap(image));
     //scene->addItem(item);
     ui_->bestImageView->fitInView(item_);
     ui_->bestImageView->show();
+}
+
+void MainWindow::setSettings(const Setting &settings)
+{
+    app_.setGeneticOperationProbabilities(settings.geneticOperationProbabilities);
+    app_.setGeneticParameters(settings.geneticParam);
+    app_.setNodeProbabilities(settings.geneticNodeProbabilities);
+    app_.setStopCriterium(settings.stopCriteriumParameters);
 }
 
 QImage  MainWindow::cvMatToQImage(const cv::Mat &inMat)
@@ -216,10 +231,9 @@ void MainWindow::on_saveFolderButton_clicked()
 
 void MainWindow::on_optionsButton_clicked()
 {
-    Setting setting;/*
-    setting.geneticNodeProbabilities =
-            new GeneticNodeProbabilities(app_.get)*/
-    Settings *settings = new Settings(setting, this);
+    setting_->setLineEdits();
+    setting_->setModal(true);
+    setting_->exec();
 }
 
 void MainWindow::on_resetButton_clicked()

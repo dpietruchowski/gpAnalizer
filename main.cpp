@@ -1,6 +1,7 @@
-#include "mainwindow.h"
+#include "ui/mainwindow.h"
 #include "ui/settings.h"
 #include "ui_settings.h"
+#include "myapplication.h"
 #include <QApplication>
 #include <cstdio>
 #include <stdlib.h>
@@ -10,7 +11,7 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) try
 {
     srand(time(NULL));
 
@@ -19,6 +20,23 @@ int main(int argc, char *argv[])
     w.show();
 
     return a.exec();
+}
+catch (std::string & ex)
+{
+    cout << ex << endl;
+}
+catch (std::exception & e)
+{
+    cout << e.what() << endl;
+}
+catch (const char *exc)
+{
+    cout << exc << endl;
+}
+
+catch (...)
+{
+    cout<< "Inny wyjatek" << endl;
 }
 
 

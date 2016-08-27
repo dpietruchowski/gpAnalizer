@@ -24,21 +24,29 @@ Hausdorff::Hausdorff(const Mat &referenceImage):
 
 int Hausdorff::fitness(Mat &A, Mat &B) const
 {
-    vector<Point> a, b, c, d;
+    int distanceAB = distance(A, B);
+    int distanceBA = distance(B, A);
 
-    this->transformImages(A, B);
-
-    if(countNonZero(A) == 0)
-        return 10000000;
-    findNonZero(A, a);
-    findNonZero(B, b);
-
-    return this->maxDistance(a, b);
+    return max(distanceAB, distanceBA);
 }
 
-void Hausdorff::transformImages(Mat &, Mat &) const
+void Hausdorff::transformImages(Mat &A, Mat &B) const
 {
-    //do nothing;
+    Mat sumAB;
+
+    bitwise_or(A, B, sumAB); // A sum B
+    bitwise_not(sumAB, sumAB);
+
+    bitwise_or(A, sumAB, A); // roznica A - A sum B
+
+    bitwise_not(A, A);
+    bitwise_not(B, B);
+}
+
+void Hausdorff::randomizePoints(std::vector<Point> &,
+                                std::vector<Point> &) const
+{
+    // do nothing
 }
 
 int Hausdorff::distance(const vector<Point> &a,
@@ -68,12 +76,18 @@ int Hausdorff::distance(const vector<Point> &a,
     return maxDistance;
 }
 
-int Hausdorff::maxDistance(const vector<Point> &a,
-                           const vector<Point> &b) const
+int Hausdorff::distance(const Mat &A, const Mat &B) const
 {
-    int maxDistance = distance(a, b);
-    int maxDistBA = distance(b, a);
-    int maxDist = max(maxDistance, maxDistBA);
+    Mat C = A.clone();
+    Mat D = B.clone();
 
-    return maxDist;
+    transformImages(C, D);
+
+    vector<Point> a, b;
+    findNonZero(C, a);
+    findNonZero(D, b);
+
+    randomizePoints(a, b);
+
+    return distance(a, b);
 }

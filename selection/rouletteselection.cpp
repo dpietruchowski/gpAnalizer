@@ -1,9 +1,12 @@
 #include "rouletteselection.h"
+#include "selectiontypes.h"
+
+static SelectionRandomGenerator generator;
 
 #include <cstdlib>
 
 RouletteSelection::RouletteSelection(ScoreType* scoreType):
-Selection(scoreType)
+    Selection(scoreType)
 {
 }
 
@@ -11,9 +14,14 @@ Selection(scoreType)
 //TODO use library to choose by probabilities
 int RouletteSelection::select(const Scores& scores) const
 {
-    double decision = ((double) std::rand() / (RAND_MAX));
+    double decision = const_cast<SelectionRandomGenerator&> (generator)();
     double sum = 0;
     int i = 0;
+    double sumofScores = 0;
+    for(const auto& score: scores)
+    {
+        sumofScores += score.normalized;
+    }
     for(const auto& score: scores)
     {
         sum += score.normalized;
@@ -35,5 +43,5 @@ void RouletteSelection::calcScores(Scores& scores, int worstScore)
     }
 
     for(auto& score : scores)
-        score.normalized = static_cast<double>(score.value) / sumOfScores;
+        score.normalized = static_cast<double>(score.value * 100) / sumOfScores;
 }

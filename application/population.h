@@ -53,6 +53,7 @@ private:
 
 signals:
     void getAssessedNumber(int);
+    void getNonZerosPixels(int);
 };
 
 #endif // POPULATION_H

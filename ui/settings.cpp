@@ -3,16 +3,33 @@
 #include "myvalidator.h"
 #include <QDialogButtonBox>
 #include <QMessageBox>
+#include <QErrorMessage>
+#include <iostream>
 
-Settings::Settings(Setting setting, QWidget *parent):
-    QDialog(parent), ui_(new Ui::Settings), setting_(setting)
+using namespace std;
+
+Settings::Settings(QWidget *parent):
+    QDialog(parent), ui_(new Ui::Settings),setting_()
 {
     ui_->setupUi(this);
+
+    setting_.geneticParam = GeneticParameters(200, 8, 40,
+                                              FITNESS_ROULETTESELECTION,
+                                              HAMMING);
+    setting_.geneticOperationProbabilities =
+            GeneticOperationProbabilities(0.3, 0.01, 0.02, 0.01, 0.55, 0);
+    setting_.geneticOperationProbabilities.copy =
+            1 - setting_.geneticOperationProbabilities.sum();
+    setting_.geneticNodeProbabilities = GeneticNodeProbabilities(0.3, 0.5, 0);
+    setting_.geneticNodeProbabilities.thresh =
+            1 - setting_.geneticNodeProbabilities.sum();
+    setting_.stopCriteriumParameters = StopCriteriumParameters(200, 50);
+
 
     ui_->ceditMinResult->setValidator(new QIntValidator(0, 1000, this));
     ui_->ceditNGenerations->setValidator(new QIntValidator(10, 1000, this));
 
-    ui_->peditCollapseM->setValidator(new MyValidator(0, 0, 3, this));
+    ui_->peditCollapseM->setValidator(new MyValidator(0, 1, 3, this));
     ui_->peditCopyProbability->setValidator(new MyValidator(0, 1, 3, this));
     ui_->peditHoistM->setValidator(new MyValidator(0, 1, 3, this));
     ui_->peditNodeM->setValidator(new MyValidator(0, 1, 3, this));
@@ -30,11 +47,7 @@ Settings::Settings(Setting setting, QWidget *parent):
     QPushButton *okB = ui_->buttonBox->button(QDialogButtonBox::Ok);
     connect(okB, SIGNAL(clicked()), this, SLOT(okButton()));
 
-
-    setGeneticOperationProbabilities(*setting_.geneticOperationProbabilities);
-    setGeneticParam(*setting_.geneticParam);
-    setNodeProbabilities(*setting_.geneticNodeProbabilities);
-    setStopCriterium(*setting_.stopCriteriumParameters);
+    setLineEdits();
 
     show();
 }
@@ -44,11 +57,27 @@ Settings::~Settings()
     delete ui_;
 }
 
+void Settings::setLineEdits()
+{
+    setGeneticOperationProbabilities(setting_.geneticOperationProbabilities);
+    setGeneticParam(setting_.geneticParam);
+    setNodeProbabilities(setting_.geneticNodeProbabilities);
+    setStopCriterium(setting_.stopCriteriumParameters);
+}
+
 void Settings::setGeneticParam(const GeneticParameters &param)
 {
     ui_->geditPopulationSize->setText(QString::number(param.populationSize));
     ui_->geditTounramentSize->setText(QString::number(param.tournamentSize));
     ui_->geditTreeDepth->setText(QString::number(param.treeDepth));
+
+    QString selectionType = QString::fromStdString(selectionTypeToString(param.selectType));
+    int index = ui_->cboxSelectionType->findText(selectionType);
+    ui_->cboxSelectionType->setCurrentIndex(index);
+
+    QString fitnessType = QString::fromStdString(fitnessTypeToString(param.fitType));
+    index = ui_->cboxFitnessType->findText(fitnessType);
+    ui_->cboxFitnessType->setCurrentIndex(index);
 }
 
 void Settings::getGeneticParam(GeneticParameters &param) const
@@ -56,6 +85,10 @@ void Settings::getGeneticParam(GeneticParameters &param) const
     param.populationSize = ui_->geditPopulationSize->text().toInt();
     param.tournamentSize = ui_->geditTounramentSize->text().toInt();
     param.treeDepth = ui_->geditTreeDepth->text().toInt();
+    string tmp = ui_->cboxSelectionType->currentText().toStdString();
+    param.selectType = selectionTypeFromString(tmp);
+    tmp = ui_->cboxFitnessType->currentText().toStdString();
+    param.fitType = fitnessTypeFromString(tmp);
 }
 
 void Settings::setGeneticOperationProbabilities(const GeneticOperationProbabilities &probabilities)
@@ -106,8 +139,34 @@ void Settings::getStopCriterium(StopCriteriumParameters &param) const
 
 void Settings::okButton()
 {
-    getGeneticOperationProbabilities(*setting_.geneticOperationProbabilities);
-    getGeneticParam(*setting_.geneticParam);
-    getNodeProbabilities(*setting_.geneticNodeProbabilities);
-    getStopCriterium(*setting_.stopCriteriumParameters);
+    GeneticOperationProbabilities operatoinProbabilities;
+    getGeneticOperationProbabilities(operatoinProbabilities);
+
+    GeneticNodeProbabilities nodeProbabilities;
+    getNodeProbabilities(nodeProbabilities);
+
+    if(nodeProbabilities.sum() != 1)
+    {
+        QMessageBox::warning(this,  "Ostrzezenie",
+                                    "Suma prawdopodobienstw wezlow (node)\n"
+                                    "nie rowna sie 1 "
+                                    "i opcje nie zostaly zmienione\n");
+        return;
+
+    } else if(operatoinProbabilities.sum() != 1)
+    {
+
+        QMessageBox::warning(this,  "Ostrzezenie",
+                                    "Suma prawdopodobienstw operacji genetycznych\n"
+                                    "nie rowna sie 1 "
+                                    "i opcje nie zostaly zmienione\n");
+        return;
+    }
+
+    getGeneticParam(setting_.geneticParam);
+    getStopCriterium(setting_.stopCriteriumParameters);
+    setting_.geneticOperationProbabilities = operatoinProbabilities;
+    setting_.geneticNodeProbabilities = nodeProbabilities;
+
+    emit getSettings(setting_);
 }

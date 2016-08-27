@@ -100,7 +100,7 @@ void Population::assess(FitnessType type, const cv::Mat &referenceImage)
     Fitness *fitness = nullptr;
     switch(type)
     {
-    case HAUSDORFF: fitness = Hausdorff::create(referenceImage);
+    case HAUSDORFF_MODIFIED: fitness = HausdorffModified::create(referenceImage);
         break;
     case HAUSDORFF_CANNY: fitness = HausdorffCanny::create(referenceImage);
         break;
@@ -147,6 +147,7 @@ void Population::assess(Fitness *fitness)
         cv::Mat result = ind.tree->run();
         ind.score = fitness->measure(result);
         emit getAssessedNumber(i);
+        emit getNonZerosPixels(cv::countNonZero(result));
         ++i;
     }
     sort();

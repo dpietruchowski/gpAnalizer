@@ -7,10 +7,29 @@
 
 enum FitnessType
 {
-    HAUSDORFF,
-    HAUSDORFF_CANNY,
-    HAMMING
+    HAMMING,
+    HAUSDORFF_MODIFIED,
+    HAUSDORFF_CANNY
 };
+
+inline FitnessType fitnessTypeFromString(std::string& enm)
+{
+    if(enm == "HAMMING") return HAMMING;
+    if(enm == "HAUSDORFF_MODIFIED") return HAUSDORFF_MODIFIED;
+    if(enm == "HAUSDORFF_CANNY") return HAUSDORFF_CANNY;
+
+    throw std::string("Wrong enum");
+}
+
+inline std::string fitnessTypeToString(FitnessType type)
+{
+    if(type == HAMMING) return "HAMMING";
+    if(type == HAUSDORFF_MODIFIED) return "HAUSDORFF_MODIFIED";
+    if(type == HAUSDORFF_CANNY) return "HAUSDORFF_CANNY";
+
+    throw std::string("Wrong enum");
+
+}
 
 class Fitness
 {

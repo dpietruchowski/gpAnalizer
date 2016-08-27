@@ -31,7 +31,7 @@ int Fitness::measure(const cv::Mat &image) const
     cv::extractChannel(C, C, 0);
     cv::extractChannel(D, D, 0);
 
-    measure = this->fitness(C, D);
+    measure = fitness(C, D);
 
     return measure;
 }

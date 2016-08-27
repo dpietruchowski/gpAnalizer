@@ -5,6 +5,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
 #include <application/application.h>
+#include "ui/settings.h"
 
 namespace Ui {
 class MainWindow;
@@ -23,6 +24,7 @@ private:
     QGraphicsScene *scene_;
     QGraphicsPixmapItem *item_;
     Application app_;
+    Settings *setting_;
 
     bool isInputImage_;
     bool isReferenceImage_;
@@ -34,6 +36,7 @@ private slots:
 
     void setOperationName(std::string operationName);
     void setBestProgram(BestIndividual best);
+    void setSettings(const Setting& settings);
 
     void on_inputImageButton_clicked();
     void on_referenceImageButton_clicked();

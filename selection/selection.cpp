@@ -1,6 +1,7 @@
 #include "selection.h"
 
 Selection::Selection(ScoreType* scoreType)
+//    generator_()
 {
     scoreType_ = scoreType;
     worstScore_ = 0;
@@ -13,11 +14,11 @@ Selection::~Selection()
 
 void Selection::add(int rank, int fitness)
 {
-    Score Score = scoreType_->add(rank, fitness);
-    if(Score.value > worstScore_)
-        worstScore_ = Score.value;
+    Score score = scoreType_->add(rank, fitness);
+    if(score.value > worstScore_)
+        worstScore_ = score.value;
 
-    scores_.push_back(Score);
+    scores_.push_back(score);
 }
 
 void Selection::calcScores()

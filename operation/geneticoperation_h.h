@@ -10,6 +10,7 @@
 #include "collapsemutation.h"
 #include "subtreecrossover.h"
 #include "arity2crossover.h"
+#include "copy.h"
 #include "geneticoperationgenerator.h"
 
 #endif // GENETICOPERATION_H_H

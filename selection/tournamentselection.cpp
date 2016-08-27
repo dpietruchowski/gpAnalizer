@@ -12,10 +12,10 @@ int TournamentSelection::select(const Scores& scores) const
     //extract subvector with tournament size
     int index = std::rand() % (scores.size() - tournamentSize_);
     int best = index;
-    for(int i = index; i < tournamentSize_; i++)
+    for(int i = index; i < tournamentSize_ + index; i++)
     {
         //the better individual, the lower standardize score (score/highestScore)
-        if(scores[best].normalized < scores[i].normalized)
+        if(scores[i].normalized < scores[best].normalized)
             best = i;
     }
 
