@@ -12,6 +12,8 @@ using namespace tinyxml2;
 Application::Application():
     stopParam_(200, 50),
     geneticParam_(200, 5, 40, FITNESS_ROULETTESELECTION, HAMMING),
+    actualPopulation_(geneticParam_.treeDepth),
+    newPopulation_(geneticParam_.treeDepth),
     stats_(geneticParam_.populationSize),  best_()
 {
     isStopped_ = 0;
@@ -35,8 +37,8 @@ Application::Application():
 
     QObject::connect(&actualPopulation_, SIGNAL(getAssessedNumber(int)),
                      this, SLOT(getAssessedNumber(int)));
-    QObject::connect(&actualPopulation_, SIGNAL(getNonZerosPixels(int)),
-                     this, SLOT(getNonZerosPixels(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getBlackPixels(int)),
+                     this, SLOT(getBlackPixels(int)));
 }
 
 Application::Application(const Application &rhs):
@@ -45,6 +47,8 @@ Application::Application(const Application &rhs):
     referenceImage_(rhs.referenceImage_), inputImage_(rhs.inputImage_),
     geneticParam_(rhs.geneticParam_), selection_(nullptr),
     generator_(rhs.generator_), operationGenerator_(rhs.operationGenerator_),
+    actualPopulation_(geneticParam_.treeDepth),
+    newPopulation_(geneticParam_.treeDepth),
     stats_(geneticParam_.populationSize), best_()
 {
     isStopped_ = 0;
@@ -112,9 +116,9 @@ void Application::getAssessedNumber(int number)
     emit getAssessed(number);
 }
 
-void Application::getNonZerosPixels(int pixels)
+void Application::getBlackPixels(int pixels)
 {
-    stats_.addNonZeros(pixels);
+    stats_.addBlack(pixels);
 }
 
 void Application::setInputImage(const cv::Mat& inputImage)
@@ -141,7 +145,8 @@ void Application::setReferenceImage(const cv::Mat& referenceImage)
 void Application::assessIndividuals()
 {
     if ( isStopped_ == 1 ) return;
-    actualPopulation_.assess(geneticParam_.fitType, referenceImage_);
+    actualPopulation_.assess(geneticParam_.fitType, referenceImage_,
+                             generator_);
 
     if(selection_ != nullptr)
     {
@@ -301,6 +306,7 @@ void Application::run()
 
     emit getOperation("Inicjacja");
     init();
+    emit getOperation("Ocenianie");
     assessIndividuals();
     Tree* bestIndividual = actualPopulation_.getBest().second;
     string program = bestIndividual->write();

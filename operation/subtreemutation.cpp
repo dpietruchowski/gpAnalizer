@@ -14,7 +14,6 @@ TreePtr SubtreeMutation::mutate(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
     int subtreeDepth = parent->getSubtreeDepth(mutationPoint);
-    subtreeDepth += subtreeDepth * 0.2;
     Tree newSubtree(subtreeDepth, 0);
     newSubtree.initialize(FULL_INIT, *generator_);
     TreePtr offspring = move( parent->clone(0) );

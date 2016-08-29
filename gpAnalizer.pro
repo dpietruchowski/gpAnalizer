@@ -22,7 +22,6 @@ LIBS += -L"$$OUT_PWD/libs" -lboost_system
 SOURCES += main.cpp\
     ui/settings.cpp \
     ui/myvalidator.cpp \
-    ui/mainwindow.cpp \
     node/nodeid.cpp \
     node/node.cpp \
     node/terminalset.cpp \
@@ -59,9 +58,11 @@ SOURCES += main.cpp\
     myapplication.cpp \
     operation/copy.cpp \
     application/stats.cpp \
-    fitness/hausdorffmodified.cpp
+    fitness/hausdorffmodified.cpp \
+    ui/applicationtab.cpp \
+    ui/mainwindow.cpp
 
-HEADERS  += ui/mainwindow.h \
+HEADERS  += \
     ui/settings.h \
     ui/myvalidator.h \
     node/nodes.h \
@@ -105,10 +106,14 @@ HEADERS  += ui/mainwindow.h \
     myapplication.h \
     operation/copy.h \
     application/stats.h \
-    fitness/hausdorffmodified.h
+    fitness/hausdorffmodified.h \
+    ui/applicationtab.h \
+    ui/mainwindow.h
 
-FORMS    += ui/mainwindow.ui \
-    ui/settings.ui
+FORMS    += \
+    ui/settings.ui \
+    ui/applicationtab.ui \
+    ui/mainwindow.ui
 
     prog.path = $$_PRO_FILE_PWD_/../GP
     prog.files = $$OUT_PWD/gpAnalizer

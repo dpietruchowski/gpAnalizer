@@ -14,7 +14,7 @@ public:
     void addFitness(int score);
     void addNNodes(int nNodes);
     void addDepth(int depht);
-    void addNonZeros(int nonZeros);
+    void addBlack(int pixel);
     void incRankSelected(int rank);
     void clear();
 
@@ -25,7 +25,7 @@ private:
     std::string getNNodesStats() const;
     std::string getDepthStats() const;
     std::string getRankSelectedStats() const;
-    std::string getNonZerosStats() const;
+    std::string getBlackStats() const;
 
 private:
     int size_;
@@ -33,7 +33,7 @@ private:
     std::vector<int> nNodes_;
     std::vector<int> depth_;
     std::vector<int> rankSelected_;
-    std::vector<int> nonZeros_;
+    std::vector<int> black_;
 
 };
 

@@ -11,22 +11,29 @@ Tree::Tree(int depth, int id):
 
 void Tree::initialize(InitType type, NodeGenerator &generator)
 {
-    if (counterNodes_ > 1)
-    {
-       string exception = "Drzewo zostalo juz zainicjowane";
-       throw exception;
-    }
+//    if (counterNodes_ > 1)
+//    {
+//       string exception = "Drzewo zostalo juz zainicjowane";
+//       throw exception;
+//    }
 
     initializeRoot(generator);
 
     if (type == GROW_INIT)
     {
        initializeGrow(generator, root_.get(), depth_-1);
-       depth_ = 1;
-       checkDepth(root_.get(), depth_);
+       depth_ = getSubtreeDepth(0);
            //Change depth, After grow init can be different
     } else if (type == FULL_INIT)
         initializeFull(generator, root_.get(), depth_-1);
+
+    Mat result = run();
+    threshold(result, result, 125, 255, 0);
+    int whitePixels = countNonZero(result);
+    int blackPixels = result.total() - whitePixels;
+
+    if( (whitePixels == 0) || (blackPixels == 0) )
+        initialize(type, generator);
 }
 
 cv::Mat Tree::run() const
@@ -51,6 +58,7 @@ TreePtr Tree::cloneSubtree(int subrootI, int newId) const
     TreePtr newTree(new Tree(newDepth, newId));
     Node* subroot = getNode(subrootI);
     newTree->clone(*subroot);
+    newTree->depth_ = newTree->getSubtreeDepth(0);
 
     return newTree;
 }
@@ -77,8 +85,7 @@ void Tree::setNode(int nodeNumber, const Node &node)
         nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
     }
 
-    depth_ = 1;
-    checkDepth(root_.get(), depth_);
+    depth_ = getSubtreeDepth(0);
 }
 
 void Tree::setSubtree(int nodeNumber, const Node &root)
@@ -94,8 +101,7 @@ void Tree::setSubtree(int nodeNumber, const Node &root)
         nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
     }
 
-    depth_ = 1;
-    checkDepth(root_.get(), depth_);
+    depth_ = getSubtreeDepth(0);
 }
 
 int Tree::getId() const
@@ -132,7 +138,7 @@ int Tree::getSubtreeDepth(int subrootI) const
         throw exception;
     }
 
-    return getSubtreeDepth(getNode(subrootI), 1);
+    return getSubtreeDepth(getNode(subrootI), 0);
 }
 
 string Tree::write() const
@@ -227,8 +233,8 @@ int Tree::initialize(NodeGenerator &generator, Node *subroot, bool terminal)
 
 void Tree::initializeRoot(NodeGenerator &generator)
 {
-    if (depth_ <= 1)
-        root_ = NodePtr( TerminalNode::create(0) );
+    if (depth_ <= 0)
+        root_ = move (NodePtr( TerminalNode::create(0) ));
     else
         root_ = move( generator.createRandomPtr() );
     counterNodes_++;
@@ -251,7 +257,7 @@ int Tree::initializeGrow(NodeGenerator &generator, Node *subroot, int depth)
 
 int Tree::initializeFull(NodeGenerator &generator, Node *subroot, int depth)
 {
-    initialize(generator, subroot, (depth <= 1));
+    initialize(generator, subroot, (depth <= 0));
 
     for (int i = 0; i < subroot->getSize(); i++)
     {

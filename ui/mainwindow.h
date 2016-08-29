@@ -2,10 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QGraphicsScene>
-#include <QGraphicsPixmapItem>
-#include <application/application.h>
-#include "ui/settings.h"
 
 namespace Ui {
 class MainWindow;
@@ -14,43 +10,17 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
 public:
     explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
 
-private:
+public:
     Ui::MainWindow *ui_;
-    QGraphicsScene *scene_;
-    QGraphicsPixmapItem *item_;
-    Application app_;
-    Settings *setting_;
 
-    bool isInputImage_;
-    bool isReferenceImage_;
-    bool isOptionSetup_;
+signals:
 
-private slots:
-    void applicationStart();
-    void applicationStop();
-
-    void setOperationName(std::string operationName);
-    void setBestProgram(BestIndividual best);
-    void setSettings(const Setting& settings);
-
-    void on_inputImageButton_clicked();
-    void on_referenceImageButton_clicked();
-    void on_saveFolderButton_clicked();
-    void on_optionsButton_clicked();
-    void on_resetButton_clicked();
-
-private:
-    QImage cvMatToQImage(const cv::Mat &inMat);
-    QPixmap cvMatToQPixmap(const cv::Mat &inMat);
-
-    void buttonsEnabledStart();
-    void buttonsEnabledStop();
-    void buttonsEnabledReset();
+public slots:
+    void newApplication();
+    void deleteApplication();
 };
 
 #endif // MAINWINDOW_H

@@ -18,7 +18,7 @@ struct BestIndividual
     int programResult;
     cv::Mat image;
     BestIndividual():
-        generationNumber(0), individualNumber(0), programResult(1000000)
+        generationNumber(0), individualNumber(0), programResult(100000000)
     {}
 
 };
@@ -103,9 +103,6 @@ class Application: public QThread
 private:
     std::string katalog_;
     bool isStopped_;
-
-    Population actualPopulation_;
-    Population newPopulation_;
     int generationNumber_;
 
     StopCriteriumParameters stopParam_;
@@ -116,6 +113,9 @@ private:
     Selection *selection_;
     NodeGenerator generator_;
     GeneticOperationGenerator operationGenerator_;
+
+    Population actualPopulation_;
+    Population newPopulation_;
 
     /*
      * Best program result in GP
@@ -159,7 +159,7 @@ private:
     int getRandomMutationPoint(Tree* parent);
 private slots:
     void getAssessedNumber(int number);
-    void getNonZerosPixels(int pixels);
+    void getBlackPixels(int pixels);
 
 signals:
     void getAssessed(int);

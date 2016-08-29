@@ -22,7 +22,7 @@ class Population : public QObject
 {
     Q_OBJECT
 public:
-    Population();
+    Population(int treeDepth);
     Population(int size, int treeDepth);
     ~Population();
 
@@ -33,8 +33,9 @@ public:
     std::pair<int,Tree*> getBest();
     int getScore(int i) const;
     int getRank(int i) const;
-    void assess(FitnessType type, const cv::Mat& referenceImage);
-    void assess(FitnessGenerator& generator);
+    void assess(FitnessType type, const cv::Mat& referenceImage,
+                NodeGenerator& generator);
+    void assess(FitnessGenerator& generator, NodeGenerator& nodeGenerator);
 
     void addIndividual(TreePtr newIndividual);
     int getSize();
@@ -42,7 +43,7 @@ public:
     void clear();
 
 private:
-    void assess(Fitness* fitness);
+    void assess(Fitness* fitness, NodeGenerator& generator);
     void sort();
 
 private:
@@ -50,10 +51,11 @@ private:
     std::vector<Individual>::iterator initializeIt_;
 private:
     int counterTrees_;
+    int treeDepth_;
 
 signals:
     void getAssessedNumber(int);
-    void getNonZerosPixels(int);
+    void getBlackPixels(int);
 };
 
 #endif // POPULATION_H

@@ -16,7 +16,7 @@ void Stats::save(const string &filePath)
     plik << getNNodesStats() << endl;
     plik << getDepthStats() << endl;
     plik << getRankSelectedStats() << endl;
-    plik << getNonZerosStats() << endl;
+    plik << getBlackStats() << endl;
 
     plik.close();
 }
@@ -53,12 +53,12 @@ string Stats::getRankSelectedStats() const
     return rankSelected;
 }
 
-string Stats::getNonZerosStats() const
+string Stats::getBlackStats() const
 {
-    string nonZeros = "nonzeros=";
-    nonZeros += vectorToString(nonZeros_);
+    string black = "black=";
+    black += vectorToString(black_);
 
-    return nonZeros;
+    return black;
 }
 
 void Stats::addFitness(int score)
@@ -76,9 +76,9 @@ void Stats::addDepth(int depth)
     depth_.push_back(depth);
 }
 
-void Stats::addNonZeros(int nonZeros)
+void Stats::addBlack(int black)
 {
-    nonZeros_.push_back(nonZeros);
+    black_.push_back(black);
 }
 
 void Stats::incRankSelected(int rank)
@@ -91,7 +91,7 @@ void Stats::clear()
     scores_.clear();
     nNodes_.clear();
     depth_.clear();
-    nonZeros_.clear();
+    black_.clear();
     rankSelected_ = vector<int>(size_, 0);
 }
 
