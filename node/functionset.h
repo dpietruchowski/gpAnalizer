@@ -35,7 +35,14 @@ public:
     static int addF(const std::vector<cv::Mat>& src, cv::Mat& dst);
     static int minF(const std::vector<cv::Mat>& src, cv::Mat& dst);
     static int maxF(const std::vector<cv::Mat>& src, cv::Mat& dst);
+    static int diff(const std::vector<cv::Mat>& src, cv::Mat& dst);
+    static int recall(const std::vector<cv::Mat>& src, cv::Mat& dst);
+    static int fillHoles(const std::vector<cv::Mat>& src, cv::Mat& dst);
+    static int borderConnected(const std::vector<cv::Mat>& src, cv::Mat& dst);
+    static int borderDisconnected(const std::vector<cv::Mat>& src, cv::Mat& dst);
 
+private:
+    static void reconstruction(const cv::Mat& src, const cv::Mat& mask, cv::Mat& dst);
 private:
     typedef std::map<std::string, std::pair<int,FunctionPtr>> Functions;
 private:

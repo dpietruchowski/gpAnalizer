@@ -19,6 +19,9 @@ private:
     int distance(const std::vector<cv::Point> &a,
                  const std::vector<cv::Point> &b) const;
     int distance(const cv::Mat& A, const cv::Mat& B) const;
+
+private:
+    int maxValue_;
 };
 
 #endif // HAUSDORFF_H

@@ -15,12 +15,14 @@ public:
 
 public:
     Ui::MainWindow *ui_;
+    int counter_;
 
 signals:
 
 public slots:
     void newApplication();
     void deleteApplication();
+    void copyApplication();
 };
 
 #endif // MAINWINDOW_H

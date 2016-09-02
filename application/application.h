@@ -153,6 +153,7 @@ public:
     void setInputImage(const cv::Mat& inputImage);
     void setReferenceImage(const cv::Mat& referenceImage);
     void setKatalog(std::string katalog);
+    void getKatalog(std::string& katalog);
     void clearKatalog();
 
 private:
@@ -160,6 +161,7 @@ private:
 private slots:
     void getAssessedNumber(int number);
     void getBlackPixels(int pixels);
+    void setOperation(std::string);
 
 signals:
     void getAssessed(int);

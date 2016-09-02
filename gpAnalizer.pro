@@ -24,7 +24,7 @@ SOURCES += main.cpp\
     ui/myvalidator.cpp \
     node/nodeid.cpp \
     node/node.cpp \
-    node/terminalset.cpp \
+ #   node/terminalset.cpp \
     node/terminalnode.cpp \
     node/functionset.cpp \
     node/functionnode.cpp \
@@ -68,7 +68,7 @@ HEADERS  += \
     node/nodes.h \
     node/nodeid.h \
     node/node.h \
-    node/terminalset.h \
+  #  node/terminalset.h \
     node/terminalnode.h \
     node/functionset.h \
     node/functionnode.h \

@@ -24,21 +24,14 @@ int Hamming::fitness(cv::Mat &A, cv::Mat &B) const
 {
     cv::Mat C;
 
+    cv::bitwise_not(A, A);
+    cv::bitwise_not(B, B);
     cv::bitwise_xor(A, B, C);
     int measure = cv::countNonZero(C); //czarne pixele
-    int inpNonZero = A.total() - cv::countNonZero(A); //czarne pixele wejsciowe
-    int refNonZero = B.total() - cv::countNonZero(B); //czarne pixele referencyjne
-    if(inpNonZero < refNonZero)
-    {
-        measure += (refNonZero - inpNonZero) * 10;
-    }
+    if (countNonZero(A)  < countNonZero(B))
+        measure += countNonZero(C)*10;
+    else measure = countNonZero(C);
 
-    inpNonZero = cv::countNonZero(A); //biale pixele wejsciowe
-    refNonZero = cv::countNonZero(B); //biale pixele referencyjne
-    if(inpNonZero < refNonZero)
-    {
-        measure += (refNonZero - inpNonZero) * 10;
-    }
 
     return measure;
 }

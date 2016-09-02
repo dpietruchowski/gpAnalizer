@@ -25,7 +25,31 @@ ApplicationTab::ApplicationTab(QWidget *parent) :
     QObject::connect(ui_->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
     QObject::connect(setting_, SIGNAL(getSettings(const Setting&)), this, SLOT(setSettings(const Setting&)));
 
+    isInputImage_ = true;
+    isReferenceImage_ = true;
     buttonsEnabledStart();
+
+    string inputName = "input.png";
+    cv::Mat inputImage = cv::imread(inputName, 0);
+    app_.setInputImage(inputImage);
+    QGraphicsScene *scene = new QGraphicsScene();
+    ui_->inputImageView->setScene(scene);
+    QGraphicsPixmapItem *item = new QGraphicsPixmapItem();
+    scene->addItem(item);
+    item->setPixmap(cvMatToQPixmap(inputImage));
+    ui_->inputImageView->fitInView(item);
+    ui_->inputImageView->show();
+
+    string referenceName = "reference.png";
+    cv::Mat referenceImage = cv::imread(referenceName, 0);
+    app_.setReferenceImage(referenceImage);
+    QGraphicsScene *scene2 = new QGraphicsScene();
+    ui_->referenceImageView->setScene(scene2);
+    QGraphicsPixmapItem *item2 = new QGraphicsPixmapItem();
+    scene2->addItem(item2);
+    item2->setPixmap(cvMatToQPixmap(referenceImage));
+    ui_->referenceImageView->fitInView(item2);
+    ui_->referenceImageView->show();
 }
 
 ApplicationTab::~ApplicationTab()
@@ -33,6 +57,21 @@ ApplicationTab::~ApplicationTab()
     delete ui_;
     delete scene_;
     delete setting_;
+}
+
+void ApplicationTab::setApplication(const Application &rhs)
+{
+    app_ = rhs;
+}
+
+const Application &ApplicationTab::getApplication()
+{
+    return app_;
+}
+
+void ApplicationTab::getKatalog(string &katalog)
+{
+    app_.getKatalog(katalog);
 }
 
 void ApplicationTab::applicationStart()

@@ -13,17 +13,17 @@ Settings::Settings(QWidget *parent):
 {
     ui_->setupUi(this);
 
-    setting_.geneticParam = GeneticParameters(200, 8, 40,
-                                              FITNESS_ROULETTESELECTION,
+    setting_.geneticParam = GeneticParameters(250, 7, 40,
+                                              RANK_ROULETTESELECTION,
                                               HAMMING);
     setting_.geneticOperationProbabilities =
-            GeneticOperationProbabilities(0.3, 0.01, 0.02, 0.01, 0.55, 0);
+            GeneticOperationProbabilities(0.1, 0.07, 0.05, 0.03, 0.75, 0);
     setting_.geneticOperationProbabilities.copy =
             1 - setting_.geneticOperationProbabilities.sum();
-    setting_.geneticNodeProbabilities = GeneticNodeProbabilities(0.3, 0.5, 0);
+    setting_.geneticNodeProbabilities = GeneticNodeProbabilities(0.35, 0.65, 0);
     setting_.geneticNodeProbabilities.thresh =
             1 - setting_.geneticNodeProbabilities.sum();
-    setting_.stopCriteriumParameters = StopCriteriumParameters(200, 50);
+    setting_.stopCriteriumParameters = StopCriteriumParameters(200, 0);
 
 
     ui_->ceditMinResult->setValidator(new QIntValidator(0, 1000, this));

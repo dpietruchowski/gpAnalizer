@@ -38,7 +38,7 @@ public:
     void mutate();
 
 private:
-    ThreshNode(const NodeId& id, ThreshPtr, const ThreshParameters&);
+    ThreshNode(const NodeId& id, ThreshPtr threshOperation, const ThreshParameters&param);
     ThreshNode(const tinyxml2::XMLElement *node, ThreshPtr,
                const ThreshParameters& param);
     ThreshNode(const ThreshNode& rhs);

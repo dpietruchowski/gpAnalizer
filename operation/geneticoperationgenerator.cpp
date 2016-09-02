@@ -2,7 +2,7 @@
 
 GeneticOperationGenerator::GeneticOperationGenerator()
 {
-
+    tmp = 5;
 }
 
 GeneticOperation *GeneticOperationGenerator::createRandomPtr()

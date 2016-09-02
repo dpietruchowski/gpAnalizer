@@ -1,4 +1,7 @@
 #include "hoistmutation.h"
+#include <iostream>
+
+using namespace std;
 
 GeneticOperation *HoistMutation::create()
 {
@@ -13,10 +16,19 @@ HoistMutation::HoistMutation()
 TreePtr HoistMutation::mutate(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
+    TreePtr offspring = parent->clone(0);
+    int parentDepth = parent->getDepth();
+    if(parentDepth > 3)
+    {
+        int subtreeSize = parent->getSubtreeDepth(mutationPoint);
+        while(subtreeSize < 2)
+        {
+            mutationPoint = getRandomMutationPoint(parent);
+            subtreeSize = parent->getSubtreeDepth(mutationPoint);
+        }
         //Offspring is subtree with randomly picked node
-    TreePtr offspring = parent->cloneSubtree(mutationPoint, 0);
-    if(offspring->getRoot()->getId().type == TERMINAL_NODE)
-        offspring = move(parent->clone(0));
+        offspring = move(parent->cloneSubtree(mutationPoint, 0));
+    }
 
     return move(offspring);
 }

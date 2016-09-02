@@ -23,7 +23,7 @@ int GeneticOperation::getRandomMutationPoint(Tree *parent) const
 {
     int mutationPoint = 1 + rand() % (parent->getSize() - 1);
         //Randomly picking node which isnt terminal node
-    for (int i = 0; i < parent->getSize(); i++)
+    for (int i = 0; i < parent->getSize() * 2; i++)
     {
         if ( parent->getNode(mutationPoint)->getId().type == TERMINAL_NODE )
             mutationPoint = 1 + rand() % (parent->getSize() - 1);

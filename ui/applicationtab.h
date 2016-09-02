@@ -19,16 +19,21 @@ public:
     explicit ApplicationTab(QWidget *parent = 0);
     ~ApplicationTab();
 
+    void setApplication(const Application& rhs);
+    const Application &getApplication();
+
+
 private:
     Ui::ApplicationTab *ui_;
     QGraphicsScene *scene_;
     QGraphicsPixmapItem *item_;
     Application app_;
     Settings *setting_;
-
     bool isInputImage_;
     bool isReferenceImage_;
     bool isOptionSetup_;
+    void getKatalog(std::string& katalog);
+    void buttonsEnabledStart();
 
 private slots:
     void applicationStart();
@@ -48,7 +53,6 @@ private:
     QImage cvMatToQImage(const cv::Mat &inMat);
     QPixmap cvMatToQPixmap(const cv::Mat &inMat);
 
-    void buttonsEnabledStart();
     void buttonsEnabledStop();
     void buttonsEnabledReset();
 };

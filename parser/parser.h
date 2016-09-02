@@ -12,9 +12,8 @@ class Parser
 public:
     Parser();
     NodePtr parseNode(const tinyxml2::XMLElement* node);
-    TreePtr parseTree(tinyxml2::XMLElement *tree);
-    TreePtr parse(std::string fileName);
-
+    TreePtr parseTree(tinyxml2::XMLElement *tree,  const cv::Mat& image);
+    TreePtr parse(std::string fileName, const cv::Mat &image);
 };
 
 #endif // PARSER_H

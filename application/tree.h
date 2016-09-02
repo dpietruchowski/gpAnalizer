@@ -19,12 +19,13 @@ struct NodeParent
 {
     Node* parent;
     int childNumber;
+    int level;
 };
 
 class Tree
 {
 public:
-    Tree(int depth, int id);
+    Tree(int depth, int id, const cv::Mat& image);
     ~Tree() {}
 public:
     void initialize(InitType type, NodeGenerator& generator);
@@ -39,6 +40,8 @@ public:
     int getId() const;
     int getSize() const;
     int getDepth() const;
+//    bool isClone(const Tree& rhs) const;
+    const cv::Mat& getImage() const;
     int getSubtreeDepth(int subrootI) const;
     std::string write() const;
     tinyxml2::XMLElement* save(tinyxml2::XMLDocument& doc) const;
@@ -46,6 +49,7 @@ public:
 
     Node* getRoot() const;
     Node* getNode(int i) const;
+    Node* getNodeNode(int i) const;
 
 private:
     ////////////////////////////////////////////////////////////////////////////
@@ -76,6 +80,7 @@ private:
     int cloneSubtree(const Node* subroot, Node* newSubroot);
 
 private:
+    cv::Mat image_;
     int id_;
     int depth_;
     int counterNodes_;

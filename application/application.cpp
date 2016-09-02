@@ -12,8 +12,8 @@ using namespace tinyxml2;
 Application::Application():
     stopParam_(200, 50),
     geneticParam_(200, 5, 40, FITNESS_ROULETTESELECTION, HAMMING),
-    actualPopulation_(geneticParam_.treeDepth),
-    newPopulation_(geneticParam_.treeDepth),
+    actualPopulation_(5),
+    newPopulation_(5),
     stats_(geneticParam_.populationSize),  best_()
 {
     isStopped_ = 0;
@@ -25,6 +25,11 @@ Application::Application():
     FunctionNode::getFunctionSet().addFunction("bitwiseXor");
     FunctionNode::getFunctionSet().addFunction("bitwiseOr");
     FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
+    FunctionNode::getFunctionSet().addFunction("diff");
+    FunctionNode::getFunctionSet().addFunction("recall");
+    FunctionNode::getFunctionSet().addFunction("fillHoles");/*
+    FunctionNode::getFunctionSet().addFunction("borderConnected");
+    FunctionNode::getFunctionSet().addFunction("borderDisconnected");*/
 
     generator_.registerObject(0.25, FunctionNode::create);
     generator_.registerObject(0.6, MorphoNode::create);
@@ -39,6 +44,8 @@ Application::Application():
                      this, SLOT(getAssessedNumber(int)));
     QObject::connect(&actualPopulation_, SIGNAL(getBlackPixels(int)),
                      this, SLOT(getBlackPixels(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getOperation(std::string)),
+                     this, SLOT(setOperation(std::string)));
 }
 
 Application::Application(const Application &rhs):
@@ -55,6 +62,13 @@ Application::Application(const Application &rhs):
 
     generationNumber_ = 0;
     selection_ = nullptr;
+
+    QObject::connect(&actualPopulation_, SIGNAL(getAssessedNumber(int)),
+                     this, SLOT(getAssessedNumber(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getBlackPixels(int)),
+                     this, SLOT(getBlackPixels(int)));
+    QObject::connect(&actualPopulation_, SIGNAL(getOperation(std::string)),
+                     this, SLOT(setOperation(std::string)));
 }
 
 Application &Application::operator =(const Application &rhs)
@@ -94,6 +108,12 @@ Application::~Application()
 void Application::setKatalog(string katalog)
 {
     katalog_ = katalog;
+    actualPopulation_.setKatalog(katalog);
+}
+
+void Application::getKatalog(string &katalog)
+{
+    katalog = katalog_;
 }
 
 void Application::clearKatalog()
@@ -121,6 +141,11 @@ void Application::getBlackPixels(int pixels)
     stats_.addBlack(pixels);
 }
 
+void Application::setOperation(string op)
+{
+    emit getOperation(op);
+}
+
 void Application::setInputImage(const cv::Mat& inputImage)
 {
     inputImage_ = inputImage;
@@ -129,7 +154,6 @@ void Application::setInputImage(const cv::Mat& inputImage)
         string exception = "Could not open or find the input image";
         throw exception;
     }
-    TerminalNode::getTerminalSet().setTerminal( MatPtr(new Mat(inputImage_)) );
 }
 
 void Application::setReferenceImage(const cv::Mat& referenceImage)
@@ -144,9 +168,17 @@ void Application::setReferenceImage(const cv::Mat& referenceImage)
 
 void Application::assessIndividuals()
 {
+    string command = "rm -r  ";
+    command += katalog_ + "/population";
+    const char *cstr = command.c_str();
+    system(cstr);
+    command = "mkdir ";
+    command += katalog_ + "/population";
+    cstr = command.c_str();
+    system(cstr);
     if ( isStopped_ == 1 ) return;
     actualPopulation_.assess(geneticParam_.fitType, referenceImage_,
-                             generator_);
+                             generator_, generationNumber_);
 
     if(selection_ != nullptr)
     {
@@ -176,7 +208,9 @@ void Application::assessIndividuals()
         stats_.addFitness(actualPopulation_.getScore(i));
         stats_.addNNodes(actualPopulation_.getIndividual(i)->getSize());
         stats_.addDepth(actualPopulation_.getIndividual(i)->getDepth());
+        stats_.addRank(actualPopulation_.getRank(i));
     }
+    stats_.addMutated(actualPopulation_.getMutated());
     selection_->calcScores();
 }
 
@@ -194,9 +228,14 @@ TreePtr Application::createNewIndividual()
     GeneticOperation *operation = operationGenerator_.createRandomPtr();
     vector<Tree*> parents;
     for(int i = 0; i < operation->getSize(); ++i)
+    {
         parents.push_back(selectIndividual());
+    }
 
-    return operation->reproduce(parents, &generator_);
+
+    TreePtr off = operation->reproduce(parents, &generator_);
+
+    return move(off);
 }
 
 void Application::evolution()
@@ -214,7 +253,9 @@ void Application::evolution()
 
 void Application::init()
 {
-    actualPopulation_.create(geneticParam_.populationSize, geneticParam_.treeDepth);
+    actualPopulation_.create(geneticParam_.populationSize,
+                             geneticParam_.treeDepth,
+                             inputImage_);
     actualPopulation_.init(generator_);
 }
 
@@ -312,6 +353,7 @@ void Application::run()
     string program = bestIndividual->write();
     saveBest(program);
     checkIfBetterSolution();
+//    actualPopulation_.savePopulation(999, katalog_);
 
     generationNumber_++;
     emit getGeneration(generationNumber_);
@@ -332,6 +374,7 @@ void Application::run()
         saveBest(program);
 
         checkIfBetterSolution();
+//        actualPopulation_.savePopulation(generationNumber_, katalog_);
 
         if ( best_.programResult < stopParam_.minResult )
             break;
@@ -344,6 +387,7 @@ void Application::run()
     bestIndividual = actualPopulation_.getBest().second;
     program = bestIndividual->write();
     saveBest(program);
+    emit getOperation("Koniec");
 }
 
 void Application::checkIfBetterSolution()

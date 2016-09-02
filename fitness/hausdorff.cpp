@@ -14,12 +14,14 @@ Fitness *Hausdorff::create(const cv::Mat& referenceImage)
 Hausdorff::Hausdorff(string referenceImageName):
     Fitness(referenceImageName)
 {
+    maxValue_ = 1000000;
 }
 
 Hausdorff::Hausdorff(const Mat &referenceImage):
     Fitness(referenceImage)
 {
-
+    maxValue_ = referenceImage.rows*referenceImage.rows;
+    maxValue_ += referenceImage.cols*referenceImage.cols;
 }
 
 int Hausdorff::fitness(Mat &A, Mat &B) const
@@ -55,7 +57,7 @@ int Hausdorff::distance(const vector<Point> &a,
     int maxDistance = 0;
     for (size_t i = 0; i < a.size(); i++)
     {
-        int minAB = 10000000;
+        int minAB = maxValue_;
         for (size_t j = 0; j < b.size(); j++)
         {
            int dx = abs(a[i].x - b[j].x);

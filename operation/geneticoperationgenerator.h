@@ -6,6 +6,7 @@
 class GeneticOperationGenerator
 {
 public:
+    int tmp;
     typedef GeneticOperation* (*CreateObjectFunction)();
     GeneticOperationGenerator();
 public:

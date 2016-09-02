@@ -11,13 +11,13 @@ Parser::Parser()
 
 }
 
-TreePtr Parser::parse(std::string fileName)
+TreePtr Parser::parse(std::string fileName, const cv::Mat& image)
 {
       XMLDocument doc;
       doc.LoadFile(fileName.c_str());
       XMLElement *tree = doc.FirstChildElement();
 
-      return parseTree(tree);
+      return parseTree(tree, image);
 }
 
 NodePtr Parser::parseNode(const tinyxml2::XMLElement *node)
@@ -36,11 +36,11 @@ NodePtr Parser::parseNode(const tinyxml2::XMLElement *node)
     }
 }
 
-TreePtr Parser::parseTree(tinyxml2::XMLElement *tree)
+TreePtr Parser::parseTree(tinyxml2::XMLElement *tree, const cv::Mat& image)
 {
     int depth = tree->IntAttribute("depth");
     int id = tree->IntAttribute("id");
-    TreePtr treePtr(new Tree(depth, id));
+    TreePtr treePtr(new Tree(depth, id, image));
     treePtr->parse(tree, *this);
 
     return treePtr;

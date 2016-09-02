@@ -11,6 +11,7 @@ public:
 
 private:
     TreePtr crossover(Tree* parent1, Tree* parent2) const;
+    TreePtr directCrossover(Tree* parent1, Tree* parent2) const;
 };
 
 #endif // SUBTREECROSSOVER_H

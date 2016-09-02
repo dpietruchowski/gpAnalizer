@@ -1,11 +1,13 @@
 #include "tree.h"
 
+#include <queue>
+
 using namespace std;
 using namespace cv;
 using namespace tinyxml2;
 
-Tree::Tree(int depth, int id):
-    id_(id), depth_(depth), counterNodes_(0), nClones(new int(0))
+Tree::Tree(int depth, int id, const cv::Mat& image):
+    image_(image), id_(id), depth_(depth), counterNodes_(0), nClones(new int(0))
 {
 }
 
@@ -33,7 +35,10 @@ void Tree::initialize(InitType type, NodeGenerator &generator)
     int blackPixels = result.total() - whitePixels;
 
     if( (whitePixels == 0) || (blackPixels == 0) )
+    {
+        if(depth_ > 7) depth_ = 7;
         initialize(type, generator);
+    }
 }
 
 cv::Mat Tree::run() const
@@ -55,7 +60,7 @@ TreePtr Tree::cloneSubtree(int subrootI, int newId) const
     }
 
     int newDepth = getSubtreeDepth(subrootI);
-    TreePtr newTree(new Tree(newDepth, newId));
+    TreePtr newTree(new Tree(newDepth, newId, image_));
     Node* subroot = getNode(subrootI);
     newTree->clone(*subroot);
     newTree->depth_ = newTree->getSubtreeDepth(0);
@@ -127,7 +132,23 @@ int Tree::getSubtreeSize(Node* subroot) const
 
 int Tree::getDepth() const
 {
-    return depth_;
+    return getSubtreeDepth(0);
+}
+
+//bool Tree::isClone(const Tree& rhs) const
+//{
+//    for(int i = 0; i < getSize(); ++i)
+//    {
+//        if(*getNode(i) != *rhs.getNode(i))
+//            return false;
+//    }
+
+//    return true;
+//}
+
+const Mat &Tree::getImage() const
+{
+    return image_;
 }
 
 int Tree::getSubtreeDepth(int subrootI) const
@@ -180,13 +201,14 @@ void Tree::parse(XMLElement *tree,
 
 int Tree::getSubtreeDepth(Node* subroot, int depth) const
 {
-    int maxDepth = 0;
+    int maxDepth = depth;
     for (int i = 0; i < subroot->getSize(); i++)
     {
-        maxDepth = getSubtreeDepth(subroot->getChild(i), depth+1);
+        int ddepth = getSubtreeDepth(subroot->getChild(i), depth+1);
+
+        if (ddepth > maxDepth)
+            maxDepth = ddepth;
     }
-    if (depth > maxDepth)
-        maxDepth = depth;
 
     return maxDepth;
 }
@@ -203,6 +225,28 @@ Node *Tree::getNode(int i) const
 
     NodeParent nodeParent = getNodeParent(root_.get(), i-1);
     return nodeParent.parent->getChild(nodeParent.childNumber);
+}
+
+Node *Tree::getNodeNode(int i) const
+{
+    queue<Node*> q;
+
+    int k = 0;
+    for (q.push(root_.get()); !q.empty(); q.pop())
+    {
+        Node *temp_node = q.front();
+        if(k == i)
+            return temp_node;
+
+        for(int i = 0; i < temp_node->getSize(); ++i)
+        {
+            q.push(temp_node->getChild(i));
+        }
+
+        ++k;
+    }
+
+    return nullptr;
 }
 
 int Tree::initialize(NodeGenerator &generator, Node *subroot, bool terminal)
@@ -385,6 +429,8 @@ cv::Mat Tree::runSubtree(Node *subroot) const
 {
     if (subroot == nullptr)
         throw string("Nie istnieje taki wezel");
+    if(subroot->getId().type == TERMINAL_NODE)
+        return image_;
 
     Mat result; // the result of function
     vector<Mat> arg; // arguments of function

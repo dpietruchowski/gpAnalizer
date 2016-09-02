@@ -40,6 +40,7 @@
     </property>
     <addaction name="newApp"/>
     <addaction name="deleteApp"/>
+    <addaction name="copyApp"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -56,6 +57,11 @@
   <action name="deleteApp">
    <property name="text">
     <string>Delete current</string>
+   </property>
+  </action>
+  <action name="copyApp">
+   <property name="text">
+    <string>Copy current</string>
    </property>
   </action>
  </widget>
