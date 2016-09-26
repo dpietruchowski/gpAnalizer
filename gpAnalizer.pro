@@ -7,12 +7,15 @@
 QT       += core gui
 
 CONFIG += c++11
+CONFIG += static
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = gpAnalizer
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11
+
+QMAKE_RPATHDIR += $$OUT_PWD/libs
 
 LIBS += -L"$$OUT_PWD/libs" -ltinyxml2
 LIBS += -L"$$OUT_PWD/libs" -lopencv_highgui -lopencv_core -lopencv_imgcodecs -lopencv_imgproc
@@ -119,5 +122,6 @@ FORMS    += \
     prog.files = $$OUT_PWD/gpAnalizer
 INSTALLS += prog
 
-message($$OUT_PWD)
+message($$OUT_PWD)#
+message($$_PRO_FILE_PWD_)
 message($$_PRO_FILE_PWD_)

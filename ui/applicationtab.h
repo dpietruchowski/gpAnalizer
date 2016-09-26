@@ -16,23 +16,19 @@ class ApplicationTab : public QWidget
     Q_OBJECT
 
 public:
+    static const int nApps = 10;
     explicit ApplicationTab(QWidget *parent = 0);
     ~ApplicationTab();
-
-    void setApplication(const Application& rhs);
-    const Application &getApplication();
-
 
 private:
     Ui::ApplicationTab *ui_;
     QGraphicsScene *scene_;
     QGraphicsPixmapItem *item_;
-    Application app_;
+    std::vector<Application*> apps_;
     Settings *setting_;
     bool isInputImage_;
     bool isReferenceImage_;
     bool isOptionSetup_;
-    void getKatalog(std::string& katalog);
     void buttonsEnabledStart();
 
 private slots:

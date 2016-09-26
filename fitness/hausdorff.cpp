@@ -26,6 +26,14 @@ Hausdorff::Hausdorff(const Mat &referenceImage):
 
 int Hausdorff::fitness(Mat &A, Mat &B) const
 {
+    if(countNonZero(A) == 0)
+    {
+        A.at<uchar>(0,0) = 0;
+        A.at<uchar>(1,0) = 0;
+        A.at<uchar>(1,1) = 0;
+        A.at<uchar>(0,1) = 0;
+    }
+
     int distanceAB = distance(A, B);
     int distanceBA = distance(B, A);
 

@@ -51,7 +51,7 @@ catch (...)
 //        TreePtr tree = parser.parse(argv[1], img);
 
 //        Mat result = tree->run();
-//        threshold(result, result, 125,255,0);
+////        threshold(result, result, 125,255,0);
 
 //        //imshow("result", result);
 //        string saveName(argv[2]);

@@ -26,8 +26,8 @@ Application::Application():
     FunctionNode::getFunctionSet().addFunction("bitwiseOr");
     FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
     FunctionNode::getFunctionSet().addFunction("diff");
-    FunctionNode::getFunctionSet().addFunction("recall");
-    FunctionNode::getFunctionSet().addFunction("fillHoles");/*
+    FunctionNode::getFunctionSet().addFunction("recall");/*
+    FunctionNode::getFunctionSet().addFunction("fillHoles");
     FunctionNode::getFunctionSet().addFunction("borderConnected");
     FunctionNode::getFunctionSet().addFunction("borderDisconnected");*/
 
@@ -242,12 +242,33 @@ void Application::evolution()
 {
     newPopulation_.clear();
     newPopulation_.addIndividual( actualPopulation_.getBest().second->clone(0));
-    for (int i = 0; i < (geneticParam_.populationSize - 1); i++)
+    map<int,int> blackPixels;
+    std::pair<std::map<int,int>::iterator,bool> ret;
+    Mat result = actualPopulation_.getBest().second->run();
+    int pixels = result.total() - countNonZero(result);
+    blackPixels.insert(make_pair(pixels,0));
+    int i = 1;
+    int iterations = 0;
+    int mutated = 0;
+    while(newPopulation_.getSize() != actualPopulation_.getSize())
     {
-        if (i == 8)
-            cout<<endl;
-        newPopulation_.addIndividual( createNewIndividual() );
+        TreePtr newIndividual = createNewIndividual();
+        result = newIndividual->run();
+        pixels = result.total() - countNonZero(result);
+        ret = blackPixels.insert(make_pair(pixels,i));
+        if(ret.second == true || iterations > 100000)
+        {
+            emit getAssessed(i);
+            newPopulation_.addIndividual( move(newIndividual) );
+            i++;
+            iterations = 0;
+        } else
+        {
+            mutated++;
+        }
+        iterations++;
     }
+    stats_.addMutated(mutated);
     actualPopulation_.swap(&newPopulation_);
 }
 

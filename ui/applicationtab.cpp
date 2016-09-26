@@ -29,9 +29,17 @@ ApplicationTab::ApplicationTab(QWidget *parent) :
     isReferenceImage_ = true;
     buttonsEnabledStart();
 
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_.push_back(new Application());
+    }
+
     string inputName = "input.png";
     cv::Mat inputImage = cv::imread(inputName, 0);
-    app_.setInputImage(inputImage);
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->setInputImage(inputImage);
+    }
     QGraphicsScene *scene = new QGraphicsScene();
     ui_->inputImageView->setScene(scene);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem();
@@ -42,7 +50,12 @@ ApplicationTab::ApplicationTab(QWidget *parent) :
 
     string referenceName = "reference.png";
     cv::Mat referenceImage = cv::imread(referenceName, 0);
-    app_.setReferenceImage(referenceImage);
+
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->setReferenceImage(referenceImage);
+    }
+
     QGraphicsScene *scene2 = new QGraphicsScene();
     ui_->referenceImageView->setScene(scene2);
     QGraphicsPixmapItem *item2 = new QGraphicsPixmapItem();
@@ -59,32 +72,21 @@ ApplicationTab::~ApplicationTab()
     delete setting_;
 }
 
-void ApplicationTab::setApplication(const Application &rhs)
-{
-    app_ = rhs;
-}
-
-const Application &ApplicationTab::getApplication()
-{
-    return app_;
-}
-
-void ApplicationTab::getKatalog(string &katalog)
-{
-    app_.getKatalog(katalog);
-}
-
 void ApplicationTab::applicationStart()
 {
-    app_.start();
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->start();
+    }
+
     //QObject::disconnect(ui_->startButton, SIGNAL(clicked()), this, SLOT(applicationStart()));
 
-    QObject::connect(&app_, SIGNAL(getGeneration(int)), ui_->generationNumber, SLOT(display(int)));
-    QObject::connect(&app_, SIGNAL(getAssessed(int)), ui_->individualNumber, SLOT(display(int)));
+    QObject::connect(apps_[0], SIGNAL(getGeneration(int)), ui_->generationNumber, SLOT(display(int)));
+    QObject::connect(apps_[0], SIGNAL(getAssessed(int)), ui_->individualNumber, SLOT(display(int)));
     qRegisterMetaType<std::string>("std::string");
-    QObject::connect(&app_, SIGNAL(getOperation(std::string)), this, SLOT(setOperationName(std::string)));
+    QObject::connect(apps_[0], SIGNAL(getOperation(std::string)), this, SLOT(setOperationName(std::string)));
     qRegisterMetaType<BestIndividual>("bestIndividual");
-    QObject::connect(&app_, SIGNAL(newBestProgram(BestIndividual)), this, SLOT(setBestProgram(BestIndividual)));
+    QObject::connect(apps_[0], SIGNAL(newBestProgram(BestIndividual)), this, SLOT(setBestProgram(BestIndividual)));
 
     buttonsEnabledStop();
 }
@@ -92,7 +94,12 @@ void ApplicationTab::applicationStart()
 void ApplicationTab::applicationStop()
 {
 //   app_.stop();
-    app_.terminate();
+
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->terminate();
+    }
+
     //QObject::disconnect(ui_->stopButton, SIGNAL(clicked()), this, SLOT(applicationStop()));
     buttonsEnabledReset();
 }
@@ -120,10 +127,13 @@ void ApplicationTab::setBestProgram(BestIndividual best)
 
 void ApplicationTab::setSettings(const Setting &settings)
 {
-    app_.setGeneticOperationProbabilities(settings.geneticOperationProbabilities);
-    app_.setGeneticParameters(settings.geneticParam);
-    app_.setNodeProbabilities(settings.geneticNodeProbabilities);
-    app_.setStopCriterium(settings.stopCriteriumParameters);
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->setGeneticOperationProbabilities(settings.geneticOperationProbabilities);
+        apps_[i]->setGeneticParameters(settings.geneticParam);
+        apps_[i]->setNodeProbabilities(settings.geneticNodeProbabilities);
+        apps_[i]->setStopCriterium(settings.stopCriteriumParameters);
+    }
 }
 
 QImage  ApplicationTab::cvMatToQImage(const cv::Mat &inMat)
@@ -188,7 +198,11 @@ void ApplicationTab::on_inputImageButton_clicked()
 
     string inputName = fileName.toStdString();
     cv::Mat inputImage = cv::imread(inputName, 0);
-    app_.setInputImage(inputImage);
+
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->setInputImage(inputImage);
+    }
 
     QGraphicsScene *scene = new QGraphicsScene();
     ui_->inputImageView->setScene(scene);
@@ -214,7 +228,10 @@ void ApplicationTab::on_referenceImageButton_clicked()
 
     string referenceName = fileName.toStdString();
     cv::Mat referenceImage = cv::imread(referenceName, 0);
-    app_.setReferenceImage(referenceImage);
+    for(int i = 0; i < nApps; i++)
+    {
+        apps_[i]->setReferenceImage(referenceImage);
+    }
 
     QGraphicsScene *scene = new QGraphicsScene();
     ui_->referenceImageView->setScene(scene);
@@ -262,8 +279,11 @@ void ApplicationTab::on_saveFolderButton_clicked()
     }
 
     string savePath = saveString.toStdString();
-
-    app_.setKatalog(savePath);
+    for(int i = 0; i < nApps; i++)
+    {
+        string ssp = savePath + "/" + to_string(i+1);
+        apps_[i]->setKatalog(ssp);
+    }
     isOptionSetup_ = true;
     buttonsEnabledStart();
 }
@@ -277,7 +297,10 @@ void ApplicationTab::on_optionsButton_clicked()
 
 void ApplicationTab::on_resetButton_clicked()
 {
-    app_ = app_;
+    for(int i = 0; i < nApps; i++)
+    {
+        *apps_[i] = *apps_[i];
+    }
 
     buttonsEnabledStart();
 }
@@ -314,5 +337,5 @@ void ApplicationTab::buttonsEnabledReset()
     ui_->referenceImageButton->setEnabled(false);
     ui_->saveFolderButton->setEnabled(false);
     ui_->optionsButton->setEnabled(false);
-    ui_->resetButton->setEnabled(true);
+    ui_->resetButton->setEnabled(false);
 }

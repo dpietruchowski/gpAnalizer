@@ -135,7 +135,7 @@ void Population::mutate(const vector<pair<int,int>> &sorted, Fitness *fitness,
             individuals_[ind.second].tree = move(TreePtr(new Tree(
                                              individuals_[ind.second].tree->getDepth(), 0,
                                              individuals_[ind.second].tree->getImage())));
-            individuals_[ind.second].tree->initialize(FULL_INIT, generator);
+            individuals_[ind.second].tree->initialize(GROW_INIT, generator);
 
             cv::Mat result = individuals_[ind.second].tree->run();
             individuals_[ind.second].score = fitness->measure(result);
@@ -214,7 +214,7 @@ void Population::assess(Fitness *fitness, NodeGenerator& generator, int k)
 //            if(treeDepth > 6) treeDepth = 6;
 //            ind.tree = move( TreePtr(new Tree(treeDepth, 0,
 //                                              ind.tree->getImage())) );
-//            ind.tree->initialize(FULL_INIT, generator);
+//            ind.tree->initialize(GROW_INIT, generator);
 //            result = ind.tree->run();
 //        }
 
@@ -228,7 +228,7 @@ void Population::assess(Fitness *fitness, NodeGenerator& generator, int k)
     std::sort(sorted.begin(), sorted.end());
     mutated_ = 0;
 //    if(k%50 == 0)
-//        mutate(sorted, fitness, generator);
+        mutate(sorted, fitness, generator);
     sort();
 }
 

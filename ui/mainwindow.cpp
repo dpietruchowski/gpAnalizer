@@ -34,7 +34,6 @@ void MainWindow::copyApplication()
     QWidget* current = ui_->tabWidget->currentWidget();
     ApplicationTab* newWidget = new ApplicationTab(this);
 
-    newWidget->setApplication(dynamic_cast<ApplicationTab*> (current)->getApplication());
 
 //    string* katalog;
 //    newWidget->getKatalog(*katalog);

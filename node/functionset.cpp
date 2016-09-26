@@ -25,10 +25,10 @@ FunctionSet::FunctionSet()
     functionsNotAdded_.insert(p);
     f = make_pair(2, FunctionSet::recall);
     p = make_pair("recall", f);
-    functionsNotAdded_.insert(p);
+    functionsNotAdded_.insert(p);/*
     f = make_pair(1, FunctionSet::fillHoles);
     p = make_pair("fillHoles", f);
-    functionsNotAdded_.insert(p);/*
+    functionsNotAdded_.insert(p);*//*
     f = make_pair(1, FunctionSet::borderConnected);
     p = make_pair("borderConnected", f);
     functionsNotAdded_.insert(p);
