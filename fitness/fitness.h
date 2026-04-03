@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <opencv2/core/core.hpp>
+#include "../exceptions.h"
 
 enum FitnessType
 {
@@ -18,7 +19,7 @@ inline FitnessType fitnessTypeFromString(std::string& enm)
     if(enm == "HAUSDORFF_MODIFIED") return HAUSDORFF_MODIFIED;
     if(enm == "HAUSDORFF_CANNY") return HAUSDORFF_CANNY;
 
-    throw std::string("Wrong enum");
+    throw InvalidEnumException("Wrong enum");
 }
 
 inline std::string fitnessTypeToString(FitnessType type)
@@ -27,7 +28,7 @@ inline std::string fitnessTypeToString(FitnessType type)
     if(type == HAUSDORFF_MODIFIED) return "HAUSDORFF_MODIFIED";
     if(type == HAUSDORFF_CANNY) return "HAUSDORFF_CANNY";
 
-    throw std::string("Wrong enum");
+    throw InvalidEnumException("Wrong enum");
 
 }
 

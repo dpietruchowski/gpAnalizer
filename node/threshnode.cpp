@@ -3,25 +3,22 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
 
-using namespace std;
-using namespace cv;
-using namespace tinyxml2;
+#include "../exceptions.h"
 
 int ThreshNode::thresholdOperation(const std::vector<cv::Mat> &src,
                                    cv::Mat & dst,
                                    const ThreshParameters &param)
 {
     if (src.size() != 1)
-       {
-           std::string exception = "Zla liczba argumentow";
-           throw exception;
-       }
+    {
+        throw InvalidArgumentException("Zla liczba argumentow");
+    }
 
-   if((param.threshType > 4) || (param.threshType < 0))
-       throw std::string("ThreshNode::thresholdOperation Bad thresh type");
+    if((param.threshType > 4) || (param.threshType < 0))
+        throw InvalidArgumentException("ThreshNode::thresholdOperation Bad thresh type");
 
    const cv::Mat& src1 = src[0];
-   threshold(src1, dst, param.threshValue, 255, param.threshType);
+    cv::threshold(src1, dst, param.threshValue, 255, param.threshType);
    return 1;
 }
 
@@ -34,7 +31,7 @@ NodePtr ThreshNode::create(unsigned int geneNumber)
                                    param) );
 }
 
-NodePtr ThreshNode::createFromXml(const XMLElement *node)
+NodePtr ThreshNode::createFromXml(const tinyxml2::XMLElement *node)
 {
     ThreshParameters param;
     param.loadAttribute(node);
@@ -43,7 +40,7 @@ NodePtr ThreshNode::createFromXml(const XMLElement *node)
                                    param) );
 }
 
-void ThreshNode::execute(const std::vector<Mat> &src, Mat &dst) const
+void ThreshNode::execute(const std::vector<cv::Mat> &src, cv::Mat &dst) const
 {
     threshOperation_(src, dst, parameters_);
 }
@@ -72,7 +69,7 @@ ThreshNode::ThreshNode(const ThreshNode &rhs):
 {
 }
 
-void ThreshNode::writeNode(string &nodeString) const
+void ThreshNode::writeNode(std::string &nodeString) const
 {
     nodeString += parameters_.toString();
 }
@@ -83,13 +80,13 @@ NodePtr ThreshNode::cloneNode() const
     return cloned;
 }
 
-void ThreshNode::save(XMLDocument &doc, XMLElement *node) const
+void ThreshNode::save(tinyxml2::XMLDocument &doc, tinyxml2::XMLElement *node) const
 {
     XMLElement *param = parameters_.save(doc);
     node->InsertEndChild(param);
 }
 
-void ThreshNode::save(XMLElement *node) const
+void ThreshNode::save(tinyxml2::XMLElement *node) const
 {
     parameters_.saveAttribute(node);
 }
@@ -125,7 +122,7 @@ int ThreshParameters::typeFromString(const std::string &type) const
     if(type == "ThreshToZeroInv") return cv::THRESH_TOZERO_INV;
     if(type == "ThreshTrunc") return cv::THRESH_TRUNC;
 
-    throw string("ThreshParameters::typeFromString: zly typ");
+    throw InvalidEnumException("ThreshParameters::typeFromString: zly typ");
 }
 
 std::string ThreshParameters::toString() const
@@ -142,29 +139,29 @@ std::string ThreshParameters::toString() const
 void ThreshParameters::fromString(const std::string &param)
 {
     size_t space = param.find_first_of(" ");
-    string type = param.substr(0, space);
+    std::string type = param.substr(0, space);
     threshType = typeFromString(type);
-    string value = param.substr(space+1);
-    threshValue = stoi(value);
+    std::string value = param.substr(space+1);
+    threshValue = std::stoi(value);
 }
 
-XMLElement *ThreshParameters::save(XMLDocument &doc) const
+tinyxml2::XMLElement *ThreshParameters::save(tinyxml2::XMLDocument &doc) const
 {
-    XMLElement *param = doc.NewElement("ThreshParam");
+    tinyxml2::XMLElement *param = doc.NewElement("ThreshParam");
     saveAttribute(param);
 
     return param;
 }
 
-void ThreshParameters::saveAttribute(XMLElement *node) const
+void ThreshParameters::saveAttribute(tinyxml2::XMLElement *node) const
 {
     node->SetAttribute("value", threshValue);
     node->SetAttribute("threshType", typeToString().c_str());
 }
 
-void ThreshParameters::loadAttribute(const XMLElement *node)
+void ThreshParameters::loadAttribute(const tinyxml2::XMLElement *node)
 {
     threshValue = node->IntAttribute("value");
     const char* type = node->Attribute("threshType");
-    threshType = typeFromString(string(type));
+    threshType = typeFromString(std::string(type));
 }

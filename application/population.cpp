@@ -1,11 +1,10 @@
 #include "population.h"
+#include "../exceptions.h"
 
 #include <limits>
 #include <algorithm>
 #include <functional>
 #include <iostream>
-
-using namespace std;
 
 Population::Population(int treeDepth):
     counterTrees_(0), treeDepth_(treeDepth)
@@ -60,14 +59,14 @@ Tree *Population::getIndividual(int i)
     return individuals_[i].tree.get();
 }
 
-pair<int,Tree*> Population::getBest()
+std::pair<int,Tree*> Population::getBest()
 {
     for(auto &ind: individuals_)
     {
         if(ind.rank == 0)
-            return make_pair(ind.score,ind.tree.get());
+            return std::make_pair(ind.score,ind.tree.get());
     }
-    return make_pair(0, nullptr);
+    return std::make_pair(0, nullptr);
 }
 
 int Population::getScore(int i) const
@@ -87,17 +86,17 @@ int Population::getMutated() const
 
 void Population::addIndividual(TreePtr newIndividual)
 {
-    individuals_.push_back( Individual(move(newIndividual)) );
+    individuals_.push_back( Individual(std::move(newIndividual)) );
 }
 
 void Population::sort()
 {
     //score, position
-    vector<pair<int,int>> sorted;
+    std::vector<std::pair<int,int>> sorted;
     int i = 0;
     for(const auto& ind: individuals_)
     {
-        sorted.push_back(make_pair(ind.score, i));
+        sorted.push_back(std::make_pair(ind.score, i));
         ++i;
     }
     std::sort(sorted.begin(), sorted.end());
@@ -110,7 +109,7 @@ void Population::sort()
     }
 }
 
-void Population::mutate(const vector<pair<int,int>> &sorted, Fitness *fitness,
+void Population::mutate(const std::vector<std::pair<int,int>> &sorted, Fitness *fitness,
                         NodeGenerator& generator)
 {
     emit getOperation("Wymiana");
@@ -123,7 +122,7 @@ void Population::mutate(const vector<pair<int,int>> &sorted, Fitness *fitness,
             GeneticOperation* mutation = generator_.createRandomPtr();
             vector<Tree*> parents;
             parents.push_back(individuals_[ind.second].tree.get());
-            individuals_[ind.second].tree = move( mutation->reproduce(parents,
+            individuals_[ind.second].tree = std::move( mutation->reproduce(parents,
                                                               &generator) );
             delete mutation;
         } else
@@ -132,7 +131,7 @@ void Population::mutate(const vector<pair<int,int>> &sorted, Fitness *fitness,
             mutated_++;
             emit getAssessedNumber(i);
 
-            individuals_[ind.second].tree = move(TreePtr(new Tree(
+            individuals_[ind.second].tree = std::move(TreePtr(new Tree(
                                              individuals_[ind.second].tree->getDepth(), 0,
                                              individuals_[ind.second].tree->getImage())));
             individuals_[ind.second].tree->initialize(GROW_INIT, generator);
@@ -158,7 +157,7 @@ void Population::assess(FitnessType type, const cv::Mat &referenceImage,
     case HAMMING: fitness = Hamming::create(referenceImage);
         break;
     default:
-        throw string("Population::assess: Should never get here");
+        throw InvalidArgumentException("Population::assess: Should never get here");
     }
     assess(fitness, generator, i);
 
@@ -192,36 +191,25 @@ void Population::clear()
     counterTrees_ = 0;
 }
 
-void Population::setKatalog(const string &katalog)
+void Population::setKatalog(const std::string &katalog)
 {
     katalog_ = katalog;
 }
 
 void Population::assess(Fitness *fitness, NodeGenerator& generator, int k)
 {
-    vector<pair<int,int>> sorted;
+    std::vector<std::pair<int,int>> sorted;
     int i = 0;
     for(auto &ind: individuals_)
     {
         cv::Mat result = ind.tree->run();
-        threshold(result, result, 125, 255, 0);
-        int whitePixels = countNonZero(result);
+        cv::threshold(result, result, 125, 255, 0);
+        int whitePixels = cv::countNonZero(result);
         int blackPixels = result.total() - whitePixels;
-
-//        if( (whitePixels == 0) || (blackPixels == 0) )
-//        {
-//            int treeDepth = ind.tree->getDepth();
-//            if(treeDepth > 6) treeDepth = 6;
-//            ind.tree = move( TreePtr(new Tree(treeDepth, 0,
-//                                              ind.tree->getImage())) );
-//            ind.tree->initialize(GROW_INIT, generator);
-//            result = ind.tree->run();
-//        }
 
         ind.score = fitness->measure(result);
         emit getAssessedNumber(i);
-//        blackPixels = result.total() - countNonZero(result);
-        sorted.push_back(make_pair(blackPixels, i));
+        sorted.push_back(std::make_pair(blackPixels, i));
         emit getBlackPixels(blackPixels);
         ++i;
     }
@@ -232,21 +220,21 @@ void Population::assess(Fitness *fitness, NodeGenerator& generator, int k)
     sort();
 }
 
-void Population::savePopulation(int generationNumber, string katalog)
+void Population::savePopulation(int generationNumber, std::string katalog)
 {
-    string command = "mkdir ";
+    std::string command = "mkdir ";
     command += katalog + "/population";
-    command += to_string(generationNumber);
+    command += std::to_string(generationNumber);
     const char *cstr = command.c_str();
     system(cstr);
     int i = 0;
     for(auto const &p: individuals_)
     {
         cv::Mat result = p.tree->run();
-        string folder = katalog + "/population";
-        string nr = to_string(generationNumber);
-        string name = "individual";
-        name = folder + nr + "/" + name + to_string(i) + ".png";
+        std::string folder = katalog + "/population";
+        std::string nr = std::to_string(generationNumber);
+        std::string name = "individual";
+        name = folder + nr + "/" + name + std::to_string(i) + ".png";
         cv::imwrite(name,result);
         i++;
     }

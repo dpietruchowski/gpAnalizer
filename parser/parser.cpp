@@ -2,9 +2,7 @@
 #include <string>
 #include <tinyxml2.h>
 #include "application/tree.h"
-
-using namespace std;
-using namespace tinyxml2;
+#include "../exceptions.h"
 
 Parser::Parser()
 {
@@ -13,9 +11,9 @@ Parser::Parser()
 
 TreePtr Parser::parse(std::string fileName, const cv::Mat& image)
 {
-      XMLDocument doc;
+      tinyxml2::XMLDocument doc;
       doc.LoadFile(fileName.c_str());
-      XMLElement *tree = doc.FirstChildElement();
+      tinyxml2::XMLElement *tree = doc.FirstChildElement();
 
       return parseTree(tree, image);
 }
@@ -32,7 +30,7 @@ NodePtr Parser::parseNode(const tinyxml2::XMLElement *node)
     case THRESH_NODE: return ThreshNode::createFromXml(node);
     case NULL_NODE:
     default:
-        throw std::string("Zły typ");
+        throw ParseException("Zły typ");
     }
 }
 

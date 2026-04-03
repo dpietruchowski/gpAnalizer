@@ -9,6 +9,7 @@
 #include <functional>
 #include <algorithm>
 #include <tinyxml2.h>
+#include "../exceptions.h"
 
 #define X_DEFINE_ENUM_TOSTRING_CASE(r, data, elem)    \
 case elem : return BOOST_PP_STRINGIZE(elem);
@@ -50,7 +51,7 @@ inline NodeType enumFromString(const std::string& enm)
     if(enm == "MORPHO_NODE") return MORPHO_NODE;                 \
     if(enm == "THRESH_NODE") return THRESH_NODE;
 
-    throw std::string("Wrong enum");
+    throw InvalidEnumException("Wrong enum");
 }
 
 struct NodeId

@@ -4,10 +4,7 @@
 #include <QtCore>
 #include <iostream>
 #include <tinyxml2.h>
-
-using namespace std;
-using namespace cv;
-using namespace tinyxml2;
+#include "../exceptions.h"
 
 Application::Application():
     stopParam_(200, 50),
@@ -26,10 +23,7 @@ Application::Application():
     FunctionNode::getFunctionSet().addFunction("bitwiseOr");
     FunctionNode::getFunctionSet().addFunction("bitwiseAnd");
     FunctionNode::getFunctionSet().addFunction("diff");
-    FunctionNode::getFunctionSet().addFunction("recall");/*
-    FunctionNode::getFunctionSet().addFunction("fillHoles");
-    FunctionNode::getFunctionSet().addFunction("borderConnected");
-    FunctionNode::getFunctionSet().addFunction("borderDisconnected");*/
+    FunctionNode::getFunctionSet().addFunction("recall");
 
     generator_.registerObject(0.25, FunctionNode::create);
     generator_.registerObject(0.6, MorphoNode::create);
@@ -105,13 +99,13 @@ Application::~Application()
     wait();
 }
 
-void Application::setKatalog(string katalog)
+void Application::setKatalog(std::string katalog)
 {
     katalog_ = katalog;
     actualPopulation_.setKatalog(katalog);
 }
 
-void Application::getKatalog(string &katalog)
+void Application::getKatalog(std::string &katalog)
 {
     katalog = katalog_;
 }
@@ -119,9 +113,9 @@ void Application::getKatalog(string &katalog)
 void Application::clearKatalog()
 {
     if(katalog_ == "")
-        throw string("Nie wybrano katalogu");
+        throw ConfigurationException("Nie wybrano katalogu");
 
-    string command = "rm -r  ";
+    std::string command = "rm -r  ";
     command += katalog_;
     const char *cstr = command.c_str();
     system(cstr);
@@ -141,7 +135,7 @@ void Application::getBlackPixels(int pixels)
     stats_.addBlack(pixels);
 }
 
-void Application::setOperation(string op)
+void Application::setOperation(std::string op)
 {
     emit getOperation(op);
 }
@@ -151,8 +145,7 @@ void Application::setInputImage(const cv::Mat& inputImage)
     inputImage_ = inputImage;
     if( !inputImage_.data )
     {
-        string exception = "Could not open or find the input image";
-        throw exception;
+        throw InvalidArgumentException("Could not open or find the input image");
     }
 }
 
@@ -161,14 +154,13 @@ void Application::setReferenceImage(const cv::Mat& referenceImage)
     referenceImage_ = referenceImage;
     if( !referenceImage_.data )
     {
-        string exception = "Could not open or find the reference image";
-        throw exception;
+        throw InvalidArgumentException("Could not open or find the reference image");
     }
 }
 
 void Application::assessIndividuals()
 {
-    string command = "rm -r  ";
+    std::string command = "rm -r  ";
     command += katalog_ + "/population";
     const char *cstr = command.c_str();
     system(cstr);
@@ -198,7 +190,7 @@ void Application::assessIndividuals()
         selection_ = new TournamentSelection(geneticParam_.tournamentSize);
         break;
     default:
-        throw string("Bad selection type");
+        throw InvalidEnumException("Bad selection type");
     }
 
     for(int i = 0; i < actualPopulation_.getSize(); ++i)
@@ -226,7 +218,7 @@ Tree* Application::selectIndividual()
 TreePtr Application::createNewIndividual()
 {
     GeneticOperation *operation = operationGenerator_.createRandomPtr();
-    vector<Tree*> parents;
+    std::vector<Tree*> parents;
     for(int i = 0; i < operation->getSize(); ++i)
     {
         parents.push_back(selectIndividual());
@@ -235,17 +227,17 @@ TreePtr Application::createNewIndividual()
 
     TreePtr off = operation->reproduce(parents, &generator_);
 
-    return move(off);
+    return std::move(off);
 }
 
 void Application::evolution()
 {
     newPopulation_.clear();
     newPopulation_.addIndividual( actualPopulation_.getBest().second->clone(0));
-    map<int,int> blackPixels;
+    std::map<int,int> blackPixels;
     std::pair<std::map<int,int>::iterator,bool> ret;
-    Mat result = actualPopulation_.getBest().second->run();
-    int pixels = result.total() - countNonZero(result);
+    cv::Mat result = actualPopulation_.getBest().second->run();
+    int pixels = result.total() - cv::countNonZero(result);
     blackPixels.insert(make_pair(pixels,0));
     int i = 1;
     int iterations = 0;
@@ -254,12 +246,12 @@ void Application::evolution()
     {
         TreePtr newIndividual = createNewIndividual();
         result = newIndividual->run();
-        pixels = result.total() - countNonZero(result);
+        pixels = result.total() - cv::countNonZero(result);
         ret = blackPixels.insert(make_pair(pixels,i));
         if(ret.second == true || iterations > 100000)
         {
             emit getAssessed(i);
-            newPopulation_.addIndividual( move(newIndividual) );
+            newPopulation_.addIndividual( std::move(newIndividual) );
             i++;
             iterations = 0;
         } else
@@ -280,26 +272,26 @@ void Application::init()
     actualPopulation_.init(generator_);
 }
 
-void Application::saveBest(string &)
+void Application::saveBest(std::string &)
 {
         //write best image
-    pair<int, Tree*> it = actualPopulation_.getBest();
+    std::pair<int, Tree*> it = actualPopulation_.getBest();
     int measure = it.first;
-    string folder = katalog_;
-    Mat result = it.second->run();
-    threshold(result,result,125,255,0);
-    string name = "/generation";
-    string nr = to_string(generationNumber_);
-    name = folder + name + nr + "_" + to_string(measure) + ".png";
-    imwrite(name,result);
+    std::string folder = katalog_;
+    cv::Mat result = it.second->run();
+    cv::threshold(result,result,125,255,0);
+    std::string name = "/generation";
+    std::string nr = std::to_string(generationNumber_);
+    name = folder + name + nr + "_" + std::to_string(measure) + ".png";
+    cv::imwrite(name,result);
         //save xml file
-    XMLDocument doc;
-    XMLElement *root = it.second->save(doc);
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLElement *root = it.second->save(doc);
     doc.InsertFirstChild(root);
 
     name = "/program";
-    name = folder + name + nr + "_" + to_string(measure) + ".xml";
-    XMLError eResult = doc.SaveFile(name.c_str());
+    name = folder + name + nr + "_" + std::to_string(measure) + ".xml";
+    tinyxml2::XMLError eResult = doc.SaveFile(name.c_str());
 
         //write stats
     name = "/stats";
@@ -316,7 +308,7 @@ void Application::stop()
 void Application::setGeneticOperationProbabilities(const GeneticOperationProbabilities &probabilities)
 {
     if(probabilities.sum() != 1.0)
-        throw string("Application::setGeneticOperationProbabilities");
+        throw ConfigurationException("Application::setGeneticOperationProbabilities: probabilities must sum to 1.0");
 
     GeneticOperationGenerator generator;
     std::swap(operationGenerator_, generator);
@@ -349,7 +341,7 @@ void Application::setStopCriterium(const StopCriteriumParameters &param)
 void Application::setNodeProbabilities(const GeneticNodeProbabilities &probabilities)
 {
     if(probabilities.sum() != 1)
-        throw string("Application::setNodeProbabilities");
+        throw ConfigurationException("Application::setNodeProbabilities: probabilities must sum to 1");
 
     NodeGenerator generator;
     std::swap(generator_, generator);
@@ -371,10 +363,9 @@ void Application::run()
     emit getOperation("Ocenianie");
     assessIndividuals();
     Tree* bestIndividual = actualPopulation_.getBest().second;
-    string program = bestIndividual->write();
+    std::string program = bestIndividual->write();
     saveBest(program);
     checkIfBetterSolution();
-//    actualPopulation_.savePopulation(999, katalog_);
 
     generationNumber_++;
     emit getGeneration(generationNumber_);
@@ -382,7 +373,7 @@ void Application::run()
     {
         stats_.clear();
         if ( isStopped_ == 1 ) return;
-        cout<<":::::::::GENERACJA NR "<<generationNumber_ <<"::::::::::"<<endl;
+        std::cout<<":::::::::GENERACJA NR "<<generationNumber_ <<"::::::::::"<<std::endl;
 
         emit getOperation("Ewolucja");
         evolution();
@@ -395,7 +386,6 @@ void Application::run()
         saveBest(program);
 
         checkIfBetterSolution();
-//        actualPopulation_.savePopulation(generationNumber_, katalog_);
 
         if ( best_.programResult < stopParam_.minResult )
             break;
@@ -417,9 +407,9 @@ void Application::checkIfBetterSolution()
     if ( bestProgramResult < best_.programResult )
     {
         Tree* program = actualPopulation_.getBest().second;
-        cout << program->write() << endl;
+        std::cout << program->write() << std::endl;
         int id = program->getId();
-        bestProgram_ = move( program->clone(id) );
+        bestProgram_ = std::move( program->clone(id) );
         int treeNumber = 15;
 
         best_.generationNumber = generationNumber_;

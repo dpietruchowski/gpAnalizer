@@ -1,8 +1,6 @@
 #include "subtreecrossover.h"
 
 #include <iostream>
-using namespace std;
-
 GeneticOperation *SubtreeCrossover::create()
 {
     return new SubtreeCrossover();
@@ -24,7 +22,7 @@ TreePtr SubtreeCrossover::directCrossover(Tree *parent1, Tree *parent2) const
 {
     int mutationPoint1 = getRandomMutationPoint(parent1);
 
-    TreePtr newSubtree = move(parent1->cloneSubtree(mutationPoint1, 0));
+    TreePtr newSubtree = std::move(parent1->cloneSubtree(mutationPoint1, 0));
     int subtreeDepth = newSubtree->getDepth();
 
     std::vector<int> mutationPoints;
@@ -37,15 +35,15 @@ TreePtr SubtreeCrossover::directCrossover(Tree *parent1, Tree *parent2) const
     int mutationPoint2;
     if(mutationPoints.empty() == false)
     {
-        int random = rand() % mutationPoints.size();
+        int random = std::rand() % mutationPoints.size();
         mutationPoint2 = mutationPoints[random];
     } else
     {
         mutationPoint2 = getRandomMutationPoint(parent2);
     }
 
-    TreePtr offspring = move( parent2->clone(0) );
+    TreePtr offspring = std::move( parent2->clone(0) );
     offspring->setSubtree(mutationPoint2, *newSubtree->getRoot() );
 
-    return move(offspring);
+    return std::move(offspring);
 }

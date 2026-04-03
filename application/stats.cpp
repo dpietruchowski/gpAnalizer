@@ -1,79 +1,77 @@
 #include "stats.h"
 #include "fstream"
 
-using namespace std;
-
 Stats::Stats(int size):
     size_(size), rankSelected_(size, 0)
 {
 }
 
-void Stats::save(const string &filePath)
+void Stats::save(const std::string &filePath)
 {
-    ofstream plik(filePath);
+    std::ofstream plik(filePath);
 
-    plik << getFitnessStats() << endl;
-    plik << getNNodesStats() << endl;
-    plik << getDepthStats() << endl;
-    plik << getRankSelectedStats() << endl;
-    plik << getBlackStats() << endl;
-    plik << getRank() << endl;
-    plik << getMutated() << endl;
+    plik << getFitnessStats() << std::endl;
+    plik << getNNodesStats() << std::endl;
+    plik << getDepthStats() << std::endl;
+    plik << getRankSelectedStats() << std::endl;
+    plik << getBlackStats() << std::endl;
+    plik << getRank() << std::endl;
+    plik << getMutated() << std::endl;
 
     plik.close();
 }
 
-string Stats::getFitnessStats() const
+std::string Stats::getFitnessStats() const
 {
-    string fitness = "fitness=";
+    std::string fitness = "fitness=";
     fitness += vectorToString(scores_);
 
     return fitness;
 }
 
-string Stats::getNNodesStats() const
+std::string Stats::getNNodesStats() const
 {
-    string nNodes = "nnodes=";
+    std::string nNodes = "nnodes=";
     nNodes += vectorToString(nNodes_);
 
     return nNodes;
 }
 
-string Stats::getDepthStats() const
+std::string Stats::getDepthStats() const
 {
-    string depth = "depth=";
+    std::string depth = "depth=";
     depth += vectorToString(depth_);
 
     return depth;
 }
 
-string Stats::getRankSelectedStats() const
+std::string Stats::getRankSelectedStats() const
 {
-    string rankSelected = "sranks=";
+    std::string rankSelected = "sranks=";
     rankSelected += vectorToString(rankSelected_);
 
     return rankSelected;
 }
 
-string Stats::getBlackStats() const
+std::string Stats::getBlackStats() const
 {
-    string black = "black=";
+    std::string black = "black=";
     black += vectorToString(black_);
 
     return black;
 }
 
-string Stats::getRank() const
+std::string Stats::getRank() const
 {
-    string rank = "rank=";
+    std::string rank = "rank=";
     rank += vectorToString(rank_);
 
     return rank;
 }
 
-string Stats::getMutated() const
+std::string Stats::getMutated() const
 {
-    string mutated = "mutated=";
+    std::string mutated = "mutated=";
     mutated += vectorToString(mutated_);
 
     return mutated;
@@ -122,17 +120,17 @@ void Stats::clear()
     black_.clear();
     rank_.clear();
     mutated_.clear();
-    rankSelected_ = vector<int>(size_, 0);
+    rankSelected_ = std::vector<int>(size_, 0);
 }
 
-string Stats::vectorToString(const std::vector<int> &vec) const
+std::string Stats::vectorToString(const std::vector<int> &vec) const
 {
-    string sVec = "[";
-    sVec += to_string(vec[0]);
+    std::string sVec = "[";
+    sVec += std::to_string(vec[0]);
     for(int i = 1; i < static_cast<int>(vec.size()); ++i)
     {
         sVec += ",";
-        sVec += to_string(vec[i]);
+        sVec += std::to_string(vec[i]);
     }
     sVec += "]";
     sVec += ";";

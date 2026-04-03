@@ -1,53 +1,29 @@
 #include "functionset.h"
-
-using namespace std;
-using namespace cv;
+#include "../exceptions.h"
 
 FunctionSet::FunctionSet()
 {
-    pair<int,FunctionPtr> f;
-    pair<string, pair<int,FunctionPtr>> p;
+    std::pair<int,FunctionPtr> f;
+    std::pair<std::string, std::pair<int,FunctionPtr>> p;
 
-    f = make_pair(2, FunctionSet::bitwiseAnd);
-    p = make_pair("bitwiseAnd", f);
+    f = std::make_pair(2, FunctionSet::bitwiseAnd);
+    p = std::make_pair("bitwiseAnd", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(2, FunctionSet::bitwiseXor);
-    p = make_pair("bitwiseXor", f);
+    f = std::make_pair(2, FunctionSet::bitwiseXor);
+    p = std::make_pair("bitwiseXor", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(2, FunctionSet::bitwiseOr);
-    p = make_pair("bitwiseOr", f);
+    f = std::make_pair(2, FunctionSet::bitwiseOr);
+    p = std::make_pair("bitwiseOr", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(1, FunctionSet::bitwiseNot);
-    p = make_pair("bitwiseNot", f);
+    f = std::make_pair(1, FunctionSet::bitwiseNot);
+    p = std::make_pair("bitwiseNot", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(2, FunctionSet::diff);
-    p = make_pair("diff", f);
+    f = std::make_pair(2, FunctionSet::diff);
+    p = std::make_pair("diff", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(2, FunctionSet::recall);
-    p = make_pair("recall", f);
-    functionsNotAdded_.insert(p);/*
-    f = make_pair(1, FunctionSet::fillHoles);
-    p = make_pair("fillHoles", f);
-    functionsNotAdded_.insert(p);*//*
-    f = make_pair(1, FunctionSet::borderConnected);
-    p = make_pair("borderConnected", f);
+    f = std::make_pair(2, FunctionSet::recall);
+    p = std::make_pair("recall", f);
     functionsNotAdded_.insert(p);
-    f = make_pair(1, FunctionSet::borderDisconnected);
-    p = make_pair("borderDisconnected", f);
-    functionsNotAdded_.insert(p);*/
-
-    f = make_pair(2, FunctionSet::absDiff);
-    p = make_pair("absDiff", f);
-//    functionsNotAdded_.insert(p);
-    f = make_pair(2, FunctionSet::addF);
-    p = make_pair("addF", f);
-//    functionsNotAdded_.insert(p);           //   <-----------------nie dodana
-    f = make_pair(2, FunctionSet::minF);
-    p = make_pair("minF", f);
-//    functionsNotAdded_.insert(p);          //    <-----------------nie dodana
-    f = make_pair(2, FunctionSet::maxF);
-    p = make_pair("maxF", f);
-//    functionsNotAdded_.insert(p);     //         <-----------------nie dodana
 
     addAllFunctions();
 }
@@ -59,7 +35,7 @@ FunctionSet::~FunctionSet()
 std::pair<FunctionId, FunctionPtr> FunctionSet::getRandomFunction() const
 {
     Functions::const_iterator it = functions_.begin();
-    std::advance(it, rand() % functions_.size() );
+    std::advance(it, std::rand() % functions_.size() );
 
     return conversion(it);
 }
@@ -72,46 +48,43 @@ std::pair<FunctionId, FunctionPtr> FunctionSet::getRandomFunction(int argumentsN
     for(auto it = functions_.begin(); it != functions_.end();)
     {
         if(it->second.first == argumentsNumber)
-            argFunctions.insert(make_pair(it->first,it->second));
+            argFunctions.insert(std::make_pair(it->first,it->second));
         ++it;
     }
 
     if (argFunctions.size() < 1)
     {
-        string exception = "Nie ma zadnej funkcji o takiej liczbie argumentow";
-        throw exception;
+        throw InvalidArgumentException("Nie ma zadnej funkcji o takiej liczbie argumentow");
     }
 
     it = argFunctions.begin();
-    std::advance(it, rand() % argFunctions.size() );
+    std::advance(it, std::rand() % argFunctions.size() );
 
     return conversion(it);
 }
 
-std::pair<FunctionId, FunctionPtr> FunctionSet::getFunction(string name) const
+std::pair<FunctionId, FunctionPtr> FunctionSet::getFunction(std::string name) const
 {
     Functions::const_iterator it = functions_.find(name);
 
     if (it == functions_.end())
     {
-        string exception = "Nie ma zadnej funkcji o takiej nazwie"
-                           "lub nie jest dodana";
-        throw exception;
+        throw InvalidArgumentException("Nie ma zadnej funkcji o takiej nazwie lub nie jest dodana");
     }
 
     return this->conversion(it);
 }
 
-void FunctionSet::addFunction(string name)
+void FunctionSet::addFunction(std::string name)
 {
     Functions::iterator it;
     it = functionsNotAdded_.find(name);
     if(it == functionsNotAdded_.end())
-        throw string("Nie ma takiej funkcji");
+        throw InvalidArgumentException("Nie ma takiej funkcji");
     functions_.insert(make_pair(it->first, it->second));
 }
 
-void FunctionSet::deleteFunction(string name)
+void FunctionSet::deleteFunction(std::string name)
 {
     functions_.erase(functions_.find(name));
 }
@@ -132,206 +105,194 @@ void FunctionSet::deleteAllFunctions()
 
 std::pair<FunctionId, FunctionPtr> FunctionSet::conversion(Functions::const_iterator it) const
 {
-    string name = it->first;
+    std::string name = it->first;
     int argumentsNumber = it->second.first;
     FunctionPtr function = it->second.second;
     FunctionId id = {name, argumentsNumber};
 
-    return make_pair(id,function);
+    return std::make_pair(id,function);
 }
 
-int FunctionSet::absDiff(const vector<Mat>& src, Mat& dst)
+int FunctionSet::absDiff(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    absdiff(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::absdiff(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::addF(const vector<Mat>& src, Mat& dst)
+int FunctionSet::addF(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    add(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::add(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::bitwiseAnd(const vector<Mat>& src, Mat& dst)
+int FunctionSet::bitwiseAnd(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    bitwise_and(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::bitwise_and(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::bitwiseXor(const vector<Mat>& src, Mat& dst)
+int FunctionSet::bitwiseXor(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    bitwise_xor(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::bitwise_xor(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::bitwiseOr(const vector<Mat>& src, Mat& dst)
+int FunctionSet::bitwiseOr(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    bitwise_or(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::bitwise_or(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::bitwiseNot(const vector<Mat>& src, Mat& dst )
+int FunctionSet::bitwiseNot(const std::vector<cv::Mat>& src, cv::Mat& dst )
 {
     if (src.size() != 1)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    bitwise_not(src1,dst);
+    const cv::Mat& src1 = src[0];
+    cv::bitwise_not(src1,dst);
     return 1;
 }
 
-int FunctionSet::maxF(const vector<Mat>& src, Mat& dst)
+int FunctionSet::maxF(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    max(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::max(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::diff(const std::vector<Mat> &src, Mat &dst)
+int FunctionSet::diff(const std::vector<cv::Mat> &src, cv::Mat &dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
 
-    Mat sumAB;
+    cv::Mat sumAB;
 
-    bitwise_or(src1, src2, sumAB); // A sum B
-    bitwise_not(sumAB, sumAB);
+    cv::bitwise_or(src1, src2, sumAB); // A sum B
+    cv::bitwise_not(sumAB, sumAB);
 
-    bitwise_or(src1, sumAB, dst); // roznica A - A sum B
+    cv::bitwise_or(src1, sumAB, dst); // roznica A - A sum B
 
     return 2;
 }
 
-int FunctionSet::recall(const std::vector<Mat> &src, Mat &dst)
+int FunctionSet::recall(const std::vector<cv::Mat> &src, cv::Mat &dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
     reconstruction(src1,src2,dst);
     return 2;
 }
 
-int FunctionSet::fillHoles(const std::vector<Mat> &src, Mat &dst)
+int FunctionSet::fillHoles(const std::vector<cv::Mat> &src, cv::Mat &dst)
 {
     if (src.size() != 1)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
+    const cv::Mat& src1 = src[0];
 
-    Mat mask;
-    mask = Mat(src1.rows, src1.cols, CV_8U);
-    Point rook_points[1][20];
-    rook_points[0][0] = Point( 0, 0 );
-    rook_points[0][1] = Point( mask.cols, 0 );
-    rook_points[0][2] = Point( mask.cols, mask.rows );
-    rook_points[0][3] = Point( 0, mask.rows );
-    const Point* ppt[1] = { rook_points[0] };
+    cv::Mat mask;
+    mask = cv::Mat(src1.rows, src1.cols, CV_8U);
+    cv::Point rook_points[1][20];
+    rook_points[0][0] = cv::Point( 0, 0 );
+    rook_points[0][1] = cv::Point( mask.cols, 0 );
+    rook_points[0][2] = cv::Point( mask.cols, mask.rows );
+    rook_points[0][3] = cv::Point( 0, mask.rows );
+    const cv::Point* ppt[1] = { rook_points[0] };
     int npt[] = { 4 };
-    fillPoly(mask,ppt,npt,1, 255);
-    rectangle(mask, Point(0,0), Point(mask.cols-1, mask.rows-1), 0, 2);
+    cv::fillPoly(mask,ppt,npt,1, 255);
+    cv::rectangle(mask, cv::Point(0,0), cv::Point(mask.cols-1, mask.rows-1), 0, 2);
 
-    Mat img = src1.clone();
-    bitwise_not(img, img);
+    cv::Mat img = src1.clone();
+    cv::bitwise_not(img, img);
 
     reconstruction(mask, img, dst);
-    bitwise_not(dst,dst);
+    cv::bitwise_not(dst,dst);
 
     return 1;
 }
 
-int FunctionSet::borderConnected(const std::vector<Mat> &src, Mat &dst)
+int FunctionSet::borderConnected(const std::vector<cv::Mat> &src, cv::Mat &dst)
 {
     if (src.size() != 1)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
+    const cv::Mat& src1 = src[0];
 
-    Mat mask;
-    mask = Mat(src1.rows, src1.cols, CV_8U);
-    Point rook_points[1][20];
-    rook_points[0][0] = Point( 0, 0 );
-    rook_points[0][1] = Point( mask.cols, 0 );
-    rook_points[0][2] = Point( mask.cols, mask.rows );
-    rook_points[0][3] = Point( 0, mask.rows );
-    const Point* ppt[1] = { rook_points[0] };
+    cv::Mat mask;
+    mask = cv::Mat(src1.rows, src1.cols, CV_8U);
+    cv::Point rook_points[1][20];
+    rook_points[0][0] = cv::Point( 0, 0 );
+    rook_points[0][1] = cv::Point( mask.cols, 0 );
+    rook_points[0][2] = cv::Point( mask.cols, mask.rows );
+    rook_points[0][3] = cv::Point( 0, mask.rows );
+    const cv::Point* ppt[1] = { rook_points[0] };
     int npt[] = { 4 };
-    fillPoly(mask,ppt,npt,1, 255);
-    rectangle(mask, Point(0,0), Point(mask.cols-1, mask.rows-1), 0, 2);
+    cv::fillPoly(mask,ppt,npt,1, 255);
+    cv::rectangle(mask, cv::Point(0,0), cv::Point(mask.cols-1, mask.rows-1), 0, 2);
 
-    Mat img = src1.clone();
+    cv::Mat img = src1.clone();
 
     reconstruction(mask, img, dst);
 
     return 1;
 }
 
-int FunctionSet::borderDisconnected(const std::vector<Mat> &src, Mat &dst)
+int FunctionSet::borderDisconnected(const std::vector<cv::Mat> &src, cv::Mat &dst)
 {
     if (src.size() != 1)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    Mat out;
+    const cv::Mat& src1 = src[0];
+    cv::Mat out;
     FunctionSet::borderConnected(src, out);
-    vector<Mat> imgs;
+    std::vector<cv::Mat> imgs;
     imgs.push_back(src1);
     imgs.push_back(out);
     FunctionSet::diff(imgs, dst);
@@ -339,43 +300,42 @@ int FunctionSet::borderDisconnected(const std::vector<Mat> &src, Mat &dst)
     return 1;
 }
 
-void FunctionSet::reconstruction(const Mat &src, const Mat &mask, Mat &dst)
+void FunctionSet::reconstruction(const cv::Mat &src, const cv::Mat &mask, cv::Mat &dst)
 {
-    Mat invSrc;
-    bitwise_not(src, invSrc);
-    Mat invMask;
-    bitwise_not(mask, invMask);
-    Mat element = getStructuringElement(MORPH_ELLIPSE, Size(5,5));
+    cv::Mat invSrc;
+    cv::bitwise_not(src, invSrc);
+    cv::Mat invMask;
+    cv::bitwise_not(mask, invMask);
+    cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5));
 
-    morphologyEx(invSrc, dst, MORPH_DILATE, element,Point(-1,-1), 1);
-    bitwise_and(dst, invMask, dst);
-    Mat prev = dst.clone();
-    morphologyEx(dst, dst, MORPH_DILATE, element,Point(-1,-1), 1);
-    bitwise_and(dst, invMask, dst);
-    Mat tmp;
-    bitwise_xor(dst, prev, tmp);
-    int pixels = countNonZero(tmp);
+    cv::morphologyEx(invSrc, dst, cv::MORPH_DILATE, element,cv::Point(-1,-1), 1);
+    cv::bitwise_and(dst, invMask, dst);
+    cv::Mat prev = dst.clone();
+    cv::morphologyEx(dst, dst, cv::MORPH_DILATE, element,cv::Point(-1,-1), 1);
+    cv::bitwise_and(dst, invMask, dst);
+    cv::Mat tmp;
+    cv::bitwise_xor(dst, prev, tmp);
+    int pixels = cv::countNonZero(tmp);
     while(pixels != 0)
     {
         prev = dst.clone();
-        morphologyEx(dst, dst, MORPH_DILATE, element,Point(-1,-1), 1);
-        bitwise_and(dst, invMask, dst);
-        bitwise_xor(dst, prev, tmp);
-        pixels = countNonZero(tmp);
+        cv::morphologyEx(dst, dst, cv::MORPH_DILATE, element,cv::Point(-1,-1), 1);
+        cv::bitwise_and(dst, invMask, dst);
+        cv::bitwise_xor(dst, prev, tmp);
+        pixels = cv::countNonZero(tmp);
     }
 
-    bitwise_not(dst, dst);
+    cv::bitwise_not(dst, dst);
 }
 
-int FunctionSet::minF(const vector<Mat>& src, Mat& dst)
+int FunctionSet::minF(const std::vector<cv::Mat>& src, cv::Mat& dst)
 {
     if (src.size() != 2)
     {
-        string exception = "Zla liczba argumentow";
-        throw exception;
+        throw InvalidArgumentException("Zla liczba argumentow");
     }
-    const Mat& src1 = src[0];
-    const Mat& src2 = src[1];
-    min(src1,src2,dst);
+    const cv::Mat& src1 = src[0];
+    const cv::Mat& src2 = src[1];
+    cv::min(src1,src2,dst);
     return 2;
 }

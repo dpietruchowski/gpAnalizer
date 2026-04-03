@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "node/nodeid.h"
+#include "../exceptions.h"
 
 class SelectionRandomGenerator
 {
@@ -29,7 +30,7 @@ inline SelectionType selectionTypeFromString(std::string& enm)
     if(enm == "RANK_ROULETTESELECTION") return RANK_ROULETTESELECTION;
     if(enm == "TOURNAMENTSELECTION") return TOURNAMENTSELECTION;
 
-    throw std::string("Wrong enum");
+    throw InvalidEnumException("Wrong enum");
 }
 
 inline std::string selectionTypeToString(SelectionType type)
@@ -38,7 +39,7 @@ inline std::string selectionTypeToString(SelectionType type)
     if(type == RANK_ROULETTESELECTION) return "RANK_ROULETTESELECTION";
     if(type == TOURNAMENTSELECTION) return "TOURNAMENTSELECTION";
 
-    throw std::string("Wrong enum");
+    throw InvalidEnumException("Wrong enum");
 }
 
 struct Score

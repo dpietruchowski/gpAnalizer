@@ -3,8 +3,6 @@
 #include <utility>
 #include <iterator>
 
-using namespace std;
-
 NodeId::NodeId():
     type(NULL_NODE), number(0), cloneNumber(0)
 {
@@ -29,28 +27,28 @@ bool NodeId::operator ==(const NodeId &rhs) const
             && (cloneNumber == rhs.cloneNumber);
 }
 
-string NodeId::toString() const
+std::string NodeId::toString() const
 {
-    string id = enumToString(type);
+    std::string id = enumToString(type);
     id += " ";
-    id += to_string(number);
+    id += std::to_string(number);
     id += " ";
-    id += to_string(cloneNumber);
+    id += std::to_string(cloneNumber);
 
     return id;
 }
 
 // Format: "NULL_NODE 6516 20"
-void NodeId::fromString(const string &id)
+void NodeId::fromString(const std::string &id)
 {
     size_t firstSpace = id.find_first_of(" ");
     size_t secondSpace = id.find_last_of(" ");
-    string stype = id.substr(0, firstSpace);
+    std::string stype = id.substr(0, firstSpace);
     type = enumFromString(stype);
-    string snumber = id.substr(firstSpace+1, secondSpace - firstSpace);
-    number = stoi(snumber);
-    string sclone = id.substr(secondSpace+1);
-    cloneNumber = stoi(sclone);
+    std::string snumber = id.substr(firstSpace+1, secondSpace - firstSpace);
+    number = std::stoi(snumber);
+    std::string sclone = id.substr(secondSpace+1);
+    cloneNumber = std::stoi(sclone);
 }
 
 void NodeId::saveAttribute(tinyxml2::XMLElement *node) const
@@ -63,7 +61,7 @@ void NodeId::saveAttribute(tinyxml2::XMLElement *node) const
 void NodeId::loadAttribute(const tinyxml2::XMLElement *node)
 {
     const char* typeStr = node->Attribute("type");
-    type = enumFromString(string(typeStr));
+    type = enumFromString(std::string(typeStr));
     number = node->IntAttribute("number");
     cloneNumber = node->IntAttribute("cloneNumber");
 }

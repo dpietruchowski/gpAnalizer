@@ -7,8 +7,6 @@
 #include <QMessageBox>
 #include <opencv2/highgui/highgui.hpp>
 
-using namespace std;
-
 ApplicationTab::ApplicationTab(QWidget *parent) :
     QWidget(parent), ui_(new Ui::ApplicationTab),
     isInputImage_(false), isReferenceImage_(false), isOptionSetup_(false)
@@ -34,7 +32,7 @@ ApplicationTab::ApplicationTab(QWidget *parent) :
         apps_.push_back(new Application());
     }
 
-    string inputName = "input.png";
+    std::string inputName = "input.png";
     cv::Mat inputImage = cv::imread(inputName, 0);
     for(int i = 0; i < nApps; i++)
     {
@@ -48,7 +46,7 @@ ApplicationTab::ApplicationTab(QWidget *parent) :
     ui_->inputImageView->fitInView(item);
     ui_->inputImageView->show();
 
-    string referenceName = "reference.png";
+    std::string referenceName = "reference.png";
     cv::Mat referenceImage = cv::imread(referenceName, 0);
 
     for(int i = 0; i < nApps; i++)
@@ -196,7 +194,7 @@ void ApplicationTab::on_inputImageButton_clicked()
     if(fileName.isEmpty() == true)
         return;
 
-    string inputName = fileName.toStdString();
+    std::string inputName = fileName.toStdString();
     cv::Mat inputImage = cv::imread(inputName, 0);
 
     for(int i = 0; i < nApps; i++)
@@ -226,7 +224,7 @@ void ApplicationTab::on_referenceImageButton_clicked()
     if(fileName.isEmpty() == true)
         return;
 
-    string referenceName = fileName.toStdString();
+    std::string referenceName = fileName.toStdString();
     cv::Mat referenceImage = cv::imread(referenceName, 0);
     for(int i = 0; i < nApps; i++)
     {
@@ -278,10 +276,10 @@ void ApplicationTab::on_saveFolderButton_clicked()
 
     }
 
-    string savePath = saveString.toStdString();
+    std::string savePath = saveString.toStdString();
     for(int i = 0; i < nApps; i++)
     {
-        string ssp = savePath + "/" + to_string(i+1);
+        std::string ssp = savePath + "/" + std::to_string(i+1);
         apps_[i]->setKatalog(ssp);
     }
     isOptionSetup_ = true;

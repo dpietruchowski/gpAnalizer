@@ -2,8 +2,6 @@
 #include "ui_mainwindow.h"
 #include "applicationtab.h"
 
-using namespace std;
-
 MainWindow::MainWindow(QWidget *parent):
     QMainWindow(parent), ui_(new Ui::MainWindow)
 {

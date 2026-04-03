@@ -2,6 +2,7 @@
 #define GENERATOR_H
 #include <map>
 #include <cmath>
+#include "../exceptions.h"
 
 template <typename T>
 struct CreationCounter
@@ -47,7 +48,7 @@ void Generator<T>::registerCallback(double probability,
 
         threshold = std::round(threshold * 1000) / 1000;
         if(threshold > 1)
-            throw "Nie mozna dodac. Za duze prawdopodobienstwo";
+            throw ConfigurationException("Nie mozna dodac. Za duze prawdopodobienstwo");
 
         CreationCounter<T> counter = { callback, 0 };
         callbacks_.insert(std::make_pair(threshold, counter));
@@ -60,7 +61,7 @@ const CreationCounter<T>& Generator<T>::createRandom()
     double random = double(std::rand()) / (RAND_MAX);
 
     if(callbacks_.empty())
-        throw "Pusto. Nie mozna wylosowac";
+        throw ConfigurationException("Pusto. Nie mozna wylosowac");
 
     //Check if sum of probabilities is equal to 1
     //If not throw exception
@@ -69,7 +70,7 @@ const CreationCounter<T>& Generator<T>::createRandom()
 
     double lessPrecision = std::round(last->first * 1000) / 1000;
     if(lessPrecision != 1)
-        throw "Suma prawdopodobienstw nie jest rowna jeden";
+        throw ConfigurationException("Suma prawdopodobienstw nie jest rowna jeden");
 
     typename Callbacks::iterator it = callbacks_.lower_bound(random);
     //it--;
