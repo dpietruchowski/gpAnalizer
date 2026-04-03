@@ -1,28 +1,25 @@
 #include "hausdorffcanny.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
-using namespace std;
-using namespace cv;
-
 Fitness *HausdorffCanny::create(const cv::Mat& referenceImage)
 {
     return new HausdorffCanny(referenceImage);
 }
 
-HausdorffCanny::HausdorffCanny(string referenceImageName):
+HausdorffCanny::HausdorffCanny(std::string referenceImageName):
     Hausdorff(referenceImageName)
 {
 }
 
-HausdorffCanny::HausdorffCanny(const Mat &referenceImage):
+HausdorffCanny::HausdorffCanny(const cv::Mat &referenceImage):
     Hausdorff(referenceImage)
 {
 
 }
 
 
-void HausdorffCanny::transformImages(Mat &A, Mat &B) const
+void HausdorffCanny::transformImages(cv::Mat &A, cv::Mat &B) const
 {
-    Canny(A, A, 20, 20*30);
-    Canny(B, B, 20, 20*30);
+    cv::Canny(A, A, 20, 20*30);
+    cv::Canny(B, B, 20, 20*30);
 }

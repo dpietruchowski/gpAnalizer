@@ -1,8 +1,6 @@
 #include "collapsemutation.h"
 #include <iostream>
 
-using namespace std;
-
 GeneticOperation *CollapseMutation::create()
 {
     return new CollapseMutation();
@@ -17,7 +15,7 @@ TreePtr CollapseMutation::mutate(Tree *parent)
 {
     int mutationPoint = getRandomMutationPoint(parent);
 
-    TreePtr offspring = move( parent->clone(0) );
+    TreePtr offspring = std::move( parent->clone(0) );
     int parentDepth = parent->getDepth();
     if(parentDepth > 3)
     {
@@ -32,6 +30,6 @@ TreePtr CollapseMutation::mutate(Tree *parent)
         offspring->setNode(mutationPoint, *newNode);
     }
 
-    return move(offspring);
+    return std::move(offspring);
 }
 

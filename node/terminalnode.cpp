@@ -2,8 +2,6 @@
 
 #include <opencv2/highgui/highgui.hpp>
 
-using namespace std;
-
 NodePtr TerminalNode::create(unsigned int geneNumber)
 {
     NodeId id = {TERMINAL_NODE, geneNumber, 0};
@@ -31,7 +29,7 @@ TerminalNode::TerminalNode(const TerminalNode &rhs):
 {
 }
 
-void TerminalNode::writeNode(string &nodeString) const
+void TerminalNode::writeNode(std::string &nodeString) const
 {
     nodeString += "input";
 }

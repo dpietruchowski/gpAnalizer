@@ -7,9 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
-
-using namespace std;
-using namespace cv;
+#include "exceptions.h"
 
 int main(int argc, char *argv[]) try
 {
@@ -21,49 +19,16 @@ int main(int argc, char *argv[]) try
 
     return a.exec();
 }
-catch (std::string & ex)
+catch (const GpException& ex)
 {
-    cout << ex << endl;
+    std::cout << ex.what() << std::endl;
 }
 catch (std::exception & e)
 {
-    cout << e.what() << endl;
+    std::cout << e.what() << std::endl;
 }
-catch (const char *exc)
-{
-    cout << exc << endl;
-}
-
 catch (...)
 {
-    cout<< "Inny wyjatek" << endl;
+    std::cout << "Inny wyjatek" << std::endl;
 }
 
-
-//int main(int argc, char* argv[])
-//{
-//    try
-//    {
-
-
-//        Parser parser;
-//        Mat img = imread(argv[2], 0);
-//        TreePtr tree = parser.parse(argv[1], img);
-
-//        Mat result = tree->run();
-////        threshold(result, result, 125,255,0);
-
-//        //imshow("result", result);
-//        string saveName(argv[2]);
-//        saveName = saveName.substr(0, saveName.size() - 4);
-//        saveName += "_out.png";
-//        imwrite(saveName, result);
-
-
-//    } catch(std::string& exc)
-//    {
-//        cout<<exc<<endl;
-//    }
-
-//    return 0;
-//}

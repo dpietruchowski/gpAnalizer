@@ -1,4 +1,5 @@
 #include "mutation.h"
+#include "../exceptions.h"
 
 Mutation::Mutation():
     GeneticOperation(1)
@@ -9,7 +10,7 @@ Mutation::Mutation():
 TreePtr Mutation::reproduce(const std::vector<Tree *> parents)
 {
     if(parents.size() != 1)
-        throw std::string("Mutation::reproduce: Too many parents");
+        throw InvalidArgumentException("Mutation::reproduce: Too many parents");
 
     return mutate(parents[0]);
 }

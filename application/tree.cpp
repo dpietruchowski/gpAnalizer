@@ -1,10 +1,7 @@
 #include "tree.h"
 
 #include <queue>
-
-using namespace std;
-using namespace cv;
-using namespace tinyxml2;
+#include "../exceptions.h"
 
 Tree::Tree(int depth, int id, const cv::Mat& image):
     image_(image), id_(id), depth_(depth), counterNodes_(0), nClones(new int(0))
@@ -29,9 +26,9 @@ void Tree::initialize(InitType type, NodeGenerator &generator)
     } else if (type == FULL_INIT)
         initializeFull(generator, root_.get(), depth_-1);
 
-    Mat result = run();
-    threshold(result, result, 125, 255, 0);
-    int whitePixels = countNonZero(result);
+    cv::Mat result = run();
+    cv::threshold(result, result, 125, 255, 0);
+    int whitePixels = cv::countNonZero(result);
     int blackPixels = result.total() - whitePixels;
 
     if( (whitePixels == 0) || (blackPixels == 0) )
@@ -55,8 +52,7 @@ TreePtr Tree::cloneSubtree(int subrootI, int newId) const
 {
     if (subrootI > (getSize() - 1))
     {
-        string exception = "Nie ma wezla o takim numerze";
-        throw exception;
+        throw InvalidArgumentException("Nie ma wezla o takim numerze");
     }
 
     int newDepth = getSubtreeDepth(subrootI);
@@ -84,10 +80,10 @@ void Tree::setNode(int nodeNumber, const Node &node)
     newNode->giveChildren(*replacedNode);
 
     if(nodeNumber == 0)
-        root_ = move(newNode);
+        root_ = std::move(newNode);
     else
     {
-        nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
+        nodeParent.parent->setChild(nodeParent.childNumber, std::move(newNode));
     }
 
     depth_ = getSubtreeDepth(0);
@@ -99,11 +95,11 @@ void Tree::setSubtree(int nodeNumber, const Node &root)
     cloneSubtree(&root, newNode.get());
 
     if(nodeNumber == 0)
-        root_ = move(newNode);
+        root_ = std::move(newNode);
     else
     {
         NodeParent nodeParent = getNodeParent(root_.get(), nodeNumber-1);
-        nodeParent.parent->setChild(nodeParent.childNumber, move(newNode));
+        nodeParent.parent->setChild(nodeParent.childNumber, std::move(newNode));
     }
 
     depth_ = getSubtreeDepth(0);
@@ -146,7 +142,7 @@ int Tree::getDepth() const
 //    return true;
 //}
 
-const Mat &Tree::getImage() const
+const cv::Mat &Tree::getImage() const
 {
     return image_;
 }
@@ -155,31 +151,30 @@ int Tree::getSubtreeDepth(int subrootI) const
 {
     if (subrootI > (this->getSize() - 1))
     {
-        string exception = "Nie ma wezla o takim numerze";
-        throw exception;
+        throw InvalidArgumentException("Nie ma wezla o takim numerze");
     }
 
     return getSubtreeDepth(getNode(subrootI), 0);
 }
 
-string Tree::write() const
+std::string Tree::write() const
 {
-    string treeString = "::::::::::: treeId: "
-                + to_string(id_) + " ::::::::::::\n";
-    string arrows = "";
+    std::string treeString = "::::::::::: treeId: "
+                + std::to_string(id_) + " ::::::::::::\n";
+    std::string arrows = "";
     treeString += writeSubtree(root_.get(), arrows);
 
     return treeString;
 }
 
-XMLElement *Tree::save(XMLDocument &doc) const
+tinyxml2::XMLElement *Tree::save(tinyxml2::XMLDocument &doc) const
 {
-    XMLElement* tree = doc.NewElement("Tree");
+    tinyxml2::XMLElement* tree = doc.NewElement("Tree");
     tree->SetAttribute("id", id_);
     tree->SetAttribute("depth", depth_);
     tree->SetAttribute("size", getSize());
 
-    XMLElement *root = root_->save(doc);
+    tinyxml2::XMLElement *root = root_->save(doc);
     tree->InsertFirstChild(root);
 
     saveSubtree(doc, root_.get(), root);
@@ -187,14 +182,14 @@ XMLElement *Tree::save(XMLDocument &doc) const
     return tree;
 }
 
-void Tree::parse(XMLElement *tree,
+void Tree::parse(tinyxml2::XMLElement *tree,
                  Parser& parser)
 {
     id_ = tree->IntAttribute("id");
     depth_ = tree->IntAttribute("depth");
 
-    XMLElement *root = tree->FirstChildElement();
-    root_ = move( parser.parseNode(root) );
+    tinyxml2::XMLElement *root = tree->FirstChildElement();
+    root_ = std::move( parser.parseNode(root) );
 
     parseSubtree(root_.get(), root, parser);
 }
@@ -252,7 +247,7 @@ Node *Tree::getNodeNode(int i) const
 int Tree::initialize(NodeGenerator &generator, Node *subroot, bool terminal)
 {
     if (subroot == nullptr)
-        throw string("Nie istnieje taki wezel");
+        throw InvalidArgumentException("Nie istnieje taki wezel");
 
     if (terminal == true)
     {
@@ -278,16 +273,16 @@ int Tree::initialize(NodeGenerator &generator, Node *subroot, bool terminal)
 void Tree::initializeRoot(NodeGenerator &generator)
 {
     if (depth_ <= 0)
-        root_ = move (NodePtr( TerminalNode::create(0) ));
+        root_ = std::move(NodePtr( TerminalNode::create(0) ));
     else
-        root_ = move( generator.createRandomPtr() );
+        root_ = std::move( generator.createRandomPtr() );
     counterNodes_++;
 }
 
 int Tree::initializeGrow(NodeGenerator &generator, Node *subroot, int depth)
 {
     int isEnd = 0;
-    if (depth < (depth_ - (1 + rand() % 2))) isEnd = rand() % 2;
+    if (depth < (depth_ - (1 + std::rand() % 2))) isEnd = std::rand() % 2;
         //Choose randomly if children of subroot should be terminals.
     initialize(generator, subroot, (depth <= 1 || isEnd));
 
@@ -341,7 +336,7 @@ void Tree::setSubtree(Node *subroot, int n, NodePtr newNode)
     int childrenSize = subroot->getSize();
     if (n < childrenSize)
     {
-        subroot->setChild(n, move(newNode));
+        subroot->setChild(n, std::move(newNode));
     } else
     {
         for (int i = 0; i < childrenSize; i++)
@@ -350,7 +345,7 @@ void Tree::setSubtree(Node *subroot, int n, NodePtr newNode)
             int subtreeSize = this->getSubtreeSize(child);
             if ( n  < subtreeSize + 1 )
             {
-                setSubtree(child, n-childrenSize, move(newNode));
+                setSubtree(child, n-childrenSize, std::move(newNode));
                 break;
             }
             else
@@ -359,9 +354,9 @@ void Tree::setSubtree(Node *subroot, int n, NodePtr newNode)
     }
 }
 
-string Tree::writeSubtree(Node *subroot, string arrows) const
+std::string Tree::writeSubtree(Node *subroot, std::string arrows) const
 {
-    string subtreeString = arrows + subroot->write();
+    std::string subtreeString = arrows + subroot->write();
     subtreeString += "\n";
     arrows += "------->";
     for (int i = 0; i < subroot->getSize(); i++)
@@ -372,26 +367,26 @@ string Tree::writeSubtree(Node *subroot, string arrows) const
     return subtreeString;
 }
 
-void Tree::saveSubtree(XMLDocument &doc, Node *subroot,
-                       XMLElement *subrootXml) const
+void Tree::saveSubtree(tinyxml2::XMLDocument &doc, Node *subroot,
+                       tinyxml2::XMLElement *subrootXml) const
 {
     for(int i = 0; i < subroot->getSize(); ++i)
     {
         Node *child = subroot->getChild(i);
-        XMLElement *childXml = child->save(doc);
+        tinyxml2::XMLElement *childXml = child->save(doc);
         subrootXml->InsertEndChild( childXml );
         saveSubtree(doc, child, childXml);
     }
 }
 
-void Tree::parseSubtree(Node *subroot, XMLElement *subrootXml, Parser &parser)
+void Tree::parseSubtree(Node *subroot, tinyxml2::XMLElement *subrootXml, Parser &parser)
 {
-    XMLElement *childXml = subrootXml->FirstChildElement();
+    tinyxml2::XMLElement *childXml = subrootXml->FirstChildElement();
     for(int i = 0; i < subroot->getSize(); ++i)
     {
         NodePtr child = parser.parseNode(childXml);
         Node *node = child.get();
-        subroot->addChild( move(child) );
+        subroot->addChild( std::move(child) );
         parseSubtree(node, childXml, parser);
 
         childXml = childXml->NextSiblingElement();
@@ -428,7 +423,7 @@ int Tree::cloneSubtree(const Node *subroot, Node *newSubroot)
 cv::Mat Tree::runSubtree(Node *subroot) const
 {
     if (subroot == nullptr)
-        throw string("Nie istnieje taki wezel");
+        throw InvalidArgumentException("Nie istnieje taki wezel");
     if(subroot->getId().type == TERMINAL_NODE)
         return image_;
 

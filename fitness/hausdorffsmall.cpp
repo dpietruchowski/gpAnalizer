@@ -1,36 +1,33 @@
 #include "hausdorffsmall.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
-using namespace std;
-using namespace cv;
-
 Fitness *HausdorffSmall::create(const cv::Mat& referenceImage)
 {
     return new HausdorffSmall(referenceImage);
 }
 
-HausdorffSmall::HausdorffSmall(string referenceImageName):
+HausdorffSmall::HausdorffSmall(std::string referenceImageName):
     Hausdorff(referenceImageName),
     width_(220), height_(100)
 {
 }
 
-HausdorffSmall::HausdorffSmall(string referenceImageName,
+HausdorffSmall::HausdorffSmall(std::string referenceImageName,
                              int width, int height):
     Hausdorff(referenceImageName),
     width_(width), height_(height)
 {
 }
 
-HausdorffSmall::HausdorffSmall(const Mat &referenceImage):
+HausdorffSmall::HausdorffSmall(const cv::Mat &referenceImage):
     Hausdorff(referenceImage),
     width_(220), height_(100)
 {
 
 }
 
-void HausdorffSmall::transformImages(Mat &A, Mat &B) const
+void HausdorffSmall::transformImages(cv::Mat &A, cv::Mat &B) const
 {
-    resize(A, A, Size(width_,height_));
-    resize(B, B, Size(width_,height_));
+    cv::resize(A, A, cv::Size(width_,height_));
+    cv::resize(B, B, cv::Size(width_,height_));
 }

@@ -10,9 +10,6 @@ struct MorphoParameters
     const static int MAX_ITER = 20;
     static MorphoParameters getRandom();
     int morphType; // max 7
-//    int morphShape; // max 2
-//    int morphWidth;
-//    int morphHeight;
     int iterations;
     MorphoParameters() {}
     MorphoParameters(int type, int iter):
@@ -21,7 +18,6 @@ struct MorphoParameters
     { fromString(param); }
     std::string typeToString() const;
     int typeFromString(const std::string&) const;
-//    std::string shapeToString() const;
     std::string toString() const;
     void fromString(const std::string&);
     tinyxml2::XMLElement *save(tinyxml2::XMLDocument &doc) const;

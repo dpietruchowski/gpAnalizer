@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-using namespace std;
-
 Fitness *HausdorffModified::create(const cv::Mat &referenceImage)
 {
     return new HausdorffModified(referenceImage);
@@ -27,5 +25,5 @@ void HausdorffModified::randomizePoints(std::vector<cv::Point> &a, std::vector<c
 
 void HausdorffModified::randomizePoints(std::vector<cv::Point> &a) const
 {
-    random_shuffle(a.begin(), a.end());
+    std::random_shuffle(a.begin(), a.end());
 }

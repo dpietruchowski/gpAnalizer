@@ -2,14 +2,12 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-using namespace std;
-
 Fitness *Hamming::create(const cv::Mat &referenceImage)
 {
     return new Hamming(referenceImage);
 }
 
-Hamming::Hamming(string referenceImageName):
+Hamming::Hamming(std::string referenceImageName):
     Fitness(referenceImageName)
 {
 }

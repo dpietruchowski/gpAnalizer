@@ -1,8 +1,5 @@
 #include "functionnode.h"
 
-using namespace std;
-using namespace tinyxml2;
-
 FunctionSet FunctionNode::functions_ = FunctionSet();
 
 FunctionSet &FunctionNode::getFunctionSet()
@@ -19,7 +16,7 @@ NodePtr FunctionNode::create(unsigned int geneNumber)
 NodePtr FunctionNode::createFromXml(const XMLElement *node)
 {
     const char* name = node->Attribute("name");
-    string functionName = string(name);
+    std::string functionName = std::string(name);
     return NodePtr(new FunctionNode(node, functions_.getFunction(functionName)));
 }
 
@@ -51,11 +48,11 @@ FunctionNode::FunctionNode(const FunctionNode &rhs):
 {
 }
 
-void FunctionNode::writeNode(string &nodeString) const
+void FunctionNode::writeNode(std::string &nodeString) const
 {
     nodeString += functionId_.name;
     nodeString += " ";
-    nodeString += to_string(functionId_.nArguments);
+    nodeString += std::to_string(functionId_.nArguments);
 }
 
 NodePtr FunctionNode::cloneNode() const
@@ -64,16 +61,14 @@ NodePtr FunctionNode::cloneNode() const
     return cloned;
 }
 
-void FunctionNode::save(XMLDocument& doc, XMLElement *node) const
+void FunctionNode::save(tinyxml2::XMLDocument& doc, tinyxml2::XMLElement *node) const
 {
-    XMLElement *functionid = doc.NewElement("FunctionId");
+    tinyxml2::XMLElement *functionid = doc.NewElement("FunctionId");
     functionid->SetAttribute("name", functionId_.name.c_str());
-    //functionid->SetAttribute("nArguments", functionId_.nArguments);
     node->InsertEndChild(functionid);
 }
 
-void FunctionNode::save(XMLElement *node) const
+void FunctionNode::save(tinyxml2::XMLElement *node) const
 {
     node->SetAttribute("name", functionId_.name.c_str());
-    //node->SetAttribute("nArguments", functionId_.nArguments);
 }

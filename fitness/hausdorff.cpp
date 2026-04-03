@@ -3,28 +3,25 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 
-using namespace cv;
-using namespace std;
-
 Fitness *Hausdorff::create(const cv::Mat& referenceImage)
 {
     return new Hausdorff(referenceImage);
 }
 
-Hausdorff::Hausdorff(string referenceImageName):
+Hausdorff::Hausdorff(std::string referenceImageName):
     Fitness(referenceImageName)
 {
     maxValue_ = 1000000;
 }
 
-Hausdorff::Hausdorff(const Mat &referenceImage):
+Hausdorff::Hausdorff(const cv::Mat &referenceImage):
     Fitness(referenceImage)
 {
     maxValue_ = referenceImage.rows*referenceImage.rows;
     maxValue_ += referenceImage.cols*referenceImage.cols;
 }
 
-int Hausdorff::fitness(Mat &A, Mat &B) const
+int Hausdorff::fitness(cv::Mat &A, cv::Mat &B) const
 {
     if(countNonZero(A) == 0)
     {
@@ -37,30 +34,30 @@ int Hausdorff::fitness(Mat &A, Mat &B) const
     int distanceAB = distance(A, B);
     int distanceBA = distance(B, A);
 
-    return max(distanceAB, distanceBA);
+    return std::max(distanceAB, distanceBA);
 }
 
-void Hausdorff::transformImages(Mat &A, Mat &B) const
+void Hausdorff::transformImages(cv::Mat &A, cv::Mat &B) const
 {
-    Mat sumAB;
+    cv::Mat sumAB;
 
-    bitwise_or(A, B, sumAB); // A sum B
-    bitwise_not(sumAB, sumAB);
+    cv::bitwise_or(A, B, sumAB); // A sum B
+    cv::bitwise_not(sumAB, sumAB);
 
-    bitwise_or(A, sumAB, A); // roznica A - A sum B
+    cv::bitwise_or(A, sumAB, A); // roznica A - A sum B
 
-    bitwise_not(A, A);
-    bitwise_not(B, B);
+    cv::bitwise_not(A, A);
+    cv::bitwise_not(B, B);
 }
 
-void Hausdorff::randomizePoints(std::vector<Point> &,
-                                std::vector<Point> &) const
+void Hausdorff::randomizePoints(std::vector<cv::Point> &,
+                                std::vector<cv::Point> &) const
 {
     // do nothing
 }
 
-int Hausdorff::distance(const vector<Point> &a,
-                        const vector<Point> &b) const
+int Hausdorff::distance(const std::vector<cv::Point> &a,
+                        const std::vector<cv::Point> &b) const
 {
     int maxDistance = 0;
     for (size_t i = 0; i < a.size(); i++)
@@ -86,16 +83,16 @@ int Hausdorff::distance(const vector<Point> &a,
     return maxDistance;
 }
 
-int Hausdorff::distance(const Mat &A, const Mat &B) const
+int Hausdorff::distance(const cv::Mat &A, const cv::Mat &B) const
 {
-    Mat C = A.clone();
-    Mat D = B.clone();
+    cv::Mat C = A.clone();
+    cv::Mat D = B.clone();
 
     transformImages(C, D);
 
-    vector<Point> a, b;
-    findNonZero(C, a);
-    findNonZero(D, b);
+    std::vector<cv::Point> a, b;
+    cv::findNonZero(C, a);
+    cv::findNonZero(D, b);
 
     randomizePoints(a, b);
 

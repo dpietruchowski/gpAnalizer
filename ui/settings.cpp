@@ -6,8 +6,6 @@
 #include <QErrorMessage>
 #include <iostream>
 
-using namespace std;
-
 Settings::Settings(QWidget *parent):
     QDialog(parent), ui_(new Ui::Settings),setting_()
 {
@@ -85,7 +83,7 @@ void Settings::getGeneticParam(GeneticParameters &param) const
     param.populationSize = ui_->geditPopulationSize->text().toInt();
     param.tournamentSize = ui_->geditTounramentSize->text().toInt();
     param.treeDepth = ui_->geditTreeDepth->text().toInt();
-    string tmp = ui_->cboxSelectionType->currentText().toStdString();
+    std::string tmp = ui_->cboxSelectionType->currentText().toStdString();
     param.selectType = selectionTypeFromString(tmp);
     tmp = ui_->cboxFitnessType->currentText().toStdString();
     param.fitType = fitnessTypeFromString(tmp);
